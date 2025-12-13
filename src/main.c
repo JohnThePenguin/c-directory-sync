@@ -19,8 +19,18 @@ int main() {
   
   add_destination(structure, vector_from_cstr("source1", -1), vector_from_cstr("dest1", -1));
   add_destination(structure, vector_from_cstr("source1", -1), vector_from_cstr("dest2", -1));
+  add_destination(structure, vector_from_cstr("source1", -1), vector_from_cstr("dest3", -1));
+  add_destination(structure, vector_from_cstr("source1", -1), vector_from_cstr("dest4", -1));
+  add_destination(structure, vector_from_cstr("source1", -1), vector_from_cstr("dest5", -1));
+
+  remove_destination(structure, vector_from_cstr("source1", -1), vector_from_cstr("dest2", -1));
+  remove_destination(structure, vector_from_cstr("source1", -1), vector_from_cstr("dest4", -1));
+
   add_source(structure, vector_from_cstr("source2", -1));
   add_destination(structure,  vector_from_cstr("source2", -1), vector_from_cstr("dest3", -1));
+  add_destination(structure,  vector_from_cstr("source2", -1), vector_from_cstr("dest4", -1));
+
+  remove_source(structure, vector_from_cstr("source2", -1));
 
   for(int i = 0; i < structure->size; i++) {
     v_string source = v_get_vec(structure, i);

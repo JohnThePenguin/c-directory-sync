@@ -57,18 +57,21 @@ void remove_destination(vec_pointer structure, v_string source, v_string destina
     vec_pointer src_vec = get_source(structure, source);
     if(src_vec == NULL) return; // Throw error?
 
-    v_string dest_vec = get_destination(structure, source, destination);
-    if(dest_vec == NULL) return; // Throw error?
-
-    int i = 0;
-    while(i < src_vec->size && strcmp(v_get_vec(src_vec, i)->value, destination->value) != 0){
+    int i = 1;
+    while(i < src_vec->size){
+        v_string dest = v_get_vec(src_vec, i);
+        if(strcmp(dest->value, destination->value) == 0){
+            break;
+        } 
         i++;
     }
 
+    if(i == src_vec->size) return; // Throw error?
     vector_delete(v_get_vec(src_vec, i));
 
     while(i < src_vec->size - 1){
-        vector_set(src_vec, i, v_get_vec(src_vec, i + 1));
+        vec_pointer dest = v_get_vec(src_vec, i + 1);
+        vector_set(src_vec, i, &dest);
         i++;
     }
 
@@ -84,14 +87,11 @@ void remove_source(vec_pointer structure, v_string source){
         v_string current = v_get_vec(structure, i);
         v_string first = v_get_vec(current, 0);
 
-        printf("Comparing source: %s with %s\n", first->value, source->value);
-
         if(strcmp(first->value, source->value) == 0){
             break;
         }
         i++;
     }
-    printf("Removing source at index: %d\n", i);
 
     if(i == structure->size) return; // Throw error?
     vec_pointer src_vec = v_get_vec(structure, i);
