@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <unistd.h>
+
 #include "../includes/vector.h"
 #include "../includes/structure.h"
 #include "../includes/utils.h"
@@ -19,7 +21,7 @@ pid_t setup_destination(v_string source, v_string destination, int fd){
     }
 }
 
-int main() { 
+int mainx() { 
   vec_pointer input = vector_create(sizeof(char));
   vec_pointer structure = create_structure();
 

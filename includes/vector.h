@@ -132,7 +132,7 @@ vec_pointer v_get_vec(vec_pointer v, int index);
     @return element of given type at given index
 */
 #define v_get(type, v, index) \
-    return *((type*)(v->value) + index);
+    *((type*)(v->value) + index);
 
 /*
     Additional utility functions
