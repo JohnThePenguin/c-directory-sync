@@ -5,6 +5,8 @@
 
 int copy_file(char* source, char* destination);
 
+int copy_directory(char* source, char* destination);
+
 char* join_paths(char* path1, char* path2);
 
 char* get_relative_path(char* base_path, char* path);

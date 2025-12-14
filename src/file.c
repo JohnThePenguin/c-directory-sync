@@ -1,9 +1,12 @@
+#include "../includes/file.h"
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h>
 
 
 int copy_file(char* source, char* destination){
@@ -33,6 +36,34 @@ int copy_file(char* source, char* destination){
     }
 
     return all_write;
+}
+
+int copy_directory(char* source, char* destination){
+    DIR* dir = opendir(source);
+    if(!dir) error("opendir");
+
+    try(mkdir(destination, 0777));
+    struct dirent* dp;
+    struct stat st;
+
+    while((dp = readdir(dir)) != NULL){
+        if(strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0)
+            continue;
+
+        char* src_path = join_paths(source, dp->d_name);
+        char* dest_path = join_paths(destination, dp->d_name);
+       
+        try(stat(src_path, &st));
+        if(S_ISDIR(st.st_mode)){
+            copy_directory(src_path, dest_path);
+        } else {
+            copy_file(src_path, dest_path);
+        }
+        // handle links
+
+        free(src_path);
+        free(dest_path);
+    }
 }
 
 // int move_file(char* source, char* destination){

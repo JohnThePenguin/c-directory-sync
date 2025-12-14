@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -22,6 +24,9 @@ enum program_error {
 
 #define error(source) \
     (fprintf(stderr, "%s:%d\n", __FILE__, __LINE__), perror(source), kill(0, SIGKILL), exit(EXIT_FAILURE))
+
+#define try(op) \
+    if((op) < 0) error(#op)
 
 
 size_t read_stdin(int stdin_fd, v_string buffer);
