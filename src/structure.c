@@ -7,7 +7,7 @@
 #include "../includes/vector.h"
 
 
-const source_t SOURCE_NOT_FOUND = {NULL, NULL, -1, true};
+const source_t SOURCE_NOT_FOUND = {NULL, NULL, -1, -1, true};
 const dest_t DESTINATION_NOT_FOUND = {NULL, -1, true};
 
 vec_pointer create_structure(){
@@ -24,14 +24,15 @@ source_t get_source(vec_pointer structure, v_string source){
     return SOURCE_NOT_FOUND;
 }
 
-void add_source(vec_pointer structure, v_string source, pid_t pid, int pipe_fd){
+void add_source(vec_pointer structure, v_string source, long pipe_rd_fd, long pipe_wr_fd){
     if(!get_source(structure, source).not_found) return;
 
     source_t new_source;
     // vector_copy(&new_source.source, source);
     new_source.source = source;
     new_source.destinations = vector_create(sizeof(dest_t));
-    new_source.pipe_fd = pipe_fd;
+    new_source.pipe_rd_fd = pipe_rd_fd;
+    new_source.pipe_wr_fd = pipe_wr_fd;
     new_source.not_found = false;
 
     vector_push(structure, &new_source);

@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <signal.h>
 
+#include "vector.h"
+
 enum program_error {
     ERR_SOURCE_NOT_FOUND,
     ERR_DESTINATION_NOT_FOUND,
@@ -22,7 +24,7 @@ enum program_error {
     (fprintf(stderr, "%s:%d\n", __FILE__, __LINE__), perror(source), kill(0, SIGKILL), exit(EXIT_FAILURE))
 
 
-
+size_t read_stdin(int stdin_fd, v_string buffer);
 
 
 

@@ -2,7 +2,7 @@
 #include "../includes/vector.h"
 #include "../includes/structure.h"
 
-int main() { 
+int test() { 
   vec_pointer input = vector_create(sizeof(char));
 
   vec_pointer structure = create_structure();
