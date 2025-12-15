@@ -1,4 +1,5 @@
 #include "../includes/file.h"
+#include "../includes/utils.h"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -16,7 +17,6 @@ int copy_file(char* source, char* destination){
     int src_fd = open(source, O_RDONLY);
     int dest_fd = open(destination, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL, 0777);
 
-    ssize_t all_read = 0;
     ssize_t curr_read = 0;
     ssize_t all_write = 0;
 
@@ -27,9 +27,9 @@ int copy_file(char* source, char* destination){
 
         while(total_write <= curr_read){
             curr_write = 
-                write(dest_fd, buf+curr_read, curr_read - total_write);
+                write(dest_fd, buf+total_write, curr_read - total_write);
 
-            total_write += curr_read;
+            total_write += curr_write;
         }
         all_write += total_write;
         curr_read = read(src_fd, buf, BUF_SIZE);
@@ -64,6 +64,16 @@ int copy_directory(char* source, char* destination){
         free(src_path);
         free(dest_path);
     }
+
+    return 0;
+}
+
+int ensure_directory_exists(char* path){
+    struct stat st;
+    if(stat(path, &st) == -1){
+        try(mkdir(path, 0777));
+    }
+    return 0;
 }
 
 // int move_file(char* source, char* destination){
