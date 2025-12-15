@@ -1,0 +1,134 @@
+#include "../includes/controller.h"
+#include "../includes/events.h"
+#include "../includes/utils.h"
+#include "../includes/sync.h"
+
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <string.h>
+#include <sys/fcntl.h>
+
+
+pid_t create_controller(long pipe_fd[2], char* base_path){
+    pid_t f = fork();
+    if(f < 0){
+        perror("Fork error in create_controller");
+        exit(EXIT_FAILURE);
+    }
+    if(f == 0){
+
+        controller_loop(pipe_fd[1], base_path);
+
+        try(close(pipe_fd[0]));
+        try(close(pipe_fd[1]));
+        exit(EXIT_SUCCESS);
+    } else {
+
+        try(close(pipe_fd[0]));
+        return f;
+    }
+}
+
+char* get_fifo_path(int key){
+    size_t size = 32; // 13 + 7 + 7 + margin;
+    char* fifo_name = malloc(size * sizeof(char));
+    snprintf(fifo_name, size, "/tmp/dirsync/%d/%d", getpid(), key);
+    return fifo_name;
+}
+
+void start_sync_process(int key, int source_key, char* source, char* destination, pid_t* set_pid, int main_pipe_fd){
+    char* fifo_path = get_fifo_path(source_key);
+
+    // Fifos are per source, so it can exist already
+    if(access(fifo_path, F_OK) == -1){
+        try(mkfifo(fifo_path, 0666));
+    }
+
+    pid_t f = fork();
+    if(f < 0) error("Fork error in start_sync_process");
+    
+    if(f == 0){
+        try(close(main_pipe_fd));
+
+        run_sync(source, destination, fifo_path);
+
+        free(fifo_path);
+        exit(EXIT_SUCCESS);
+    }
+    else{
+        *set_pid = f;
+    }
+
+    free(fifo_path);
+}
+
+int stop_sync_process(pid_t pid){
+    try(kill(pid, SIGTERM));
+    int status;
+    try(waitpid(pid, &status, 0));
+    return status;
+}
+
+void start_recover_process(int key, char* source, char* destination, pid_t* set_pid, int main_pipe_fd){
+    pid_t f = fork();
+    if(f < 0) error("Fork error in start_recover_process");
+
+    if(f == 0){
+        try(close(main_pipe_fd));
+
+        run_recover(source, destination);
+
+        exit(EXIT_SUCCESS);
+    }
+    else{
+        *set_pid = f;
+    }
+}
+
+void controller_loop(int pipe_fd, char* base_path){
+    pid_t fork_pids[CONTROLLER_MAX_FORKS];
+    int fork_fds[CONTROLLER_MAX_FORKS];
+
+    memset(fork_pids, 0, sizeof(fork_pids));
+    memset(fork_fds, 0, sizeof(fork_fds));
+
+    while(1){
+        controller_event_pointer event = read_controller_event(pipe_fd);
+
+        switch(event->type){
+            case ET_SYNC_START:
+                printf("Controller: Start sync from %s to %s\n", event->source, event->destination);
+                start_sync_process(
+                    event->key, 
+                    event->source_key,
+                    event->source, 
+                    event->destination, 
+                    &fork_pids[event->key],
+                    pipe_fd
+                );
+                break;
+            case ET_SYNC_STOP:
+                printf("Controller: Stop sync from %s to %s\n", event->source, event->destination);
+                stop_sync_process(fork_pids[event->key]);
+                break;
+            case ET_RESTORE:
+                printf("Controller: Restore from %s to %s\n", event->source, event->destination);
+                start_recover_process(
+                    event->key, 
+                    event->source, 
+                    event->destination, 
+                    &fork_pids[event->key],
+                    pipe_fd
+                );
+                break;
+            default:
+                printf("Controller: Unknown event type %d\n", event->type);
+                break;
+        }
+
+        free(event); 
+    }
+}

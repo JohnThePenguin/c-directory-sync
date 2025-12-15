@@ -1,46 +1,74 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <string.h>
 
 #include "../includes/vector.h"
 #include "../includes/structure.h"
 #include "../includes/utils.h"
 #include "../includes/sync.h"
+#include "../includes/events.h"
+#include "../includes/controller.h"
 
-pid_t spawn_sync(v_string source, v_string destination, int fd){
-    pid_t f = fork();
-    if(f < 0){
-        error("Fork error");
-    }
-    if(f == 0){
-        run_sync(source, destination, fd);
-
-        if(close(fd) < 0) error("Close pipe error in child");
-        exit(EXIT_SUCCESS);
-    } else {
-        return f;
-    }
-}
-
-int setup_destination(vec_pointer structure, v_string source, v_string destination, int fd){
+int setup_destination(vec_pointer structure, v_string source, v_string destination, int controller_fd){
     dest_t dest = get_destination(structure, source, destination);
     if(!dest.not_found){
         return ERR_DESTINATION_ALREADY_EXISTS;
     }
 
     source_t src = get_source(structure, source);
-    int pipe_fd[2] = {src.pipe_rd_fd, src.pipe_wr_fd};
 
     if(src.not_found){
-        if(pipe(pipe_fd) < 0) error("Pipe creation error");
-        add_source(structure, source, pipe_fd[0], pipe_fd[1]);
+        add_source(structure, source, -1);
     }
 
-    pid_t pid = spawn_sync(source, destination, pipe_fd[0]);
+    int destination_key = -2; // Generate unique key for destination
+    add_destination(structure, source, destination, destination_key);
 
-    add_destination(structure, source, destination, pid);
+    controller_event_pointer event = malloc(sizeof(struct controller_event));
+    event->key = destination_key;
+    event->source_key = src.key;
+    event->type = ET_SYNC_START;
+    strcpy(event->source, source->value);
+    strcpy(event->destination, destination->value);
+
+    write_event(controller_fd, event, sizeof(struct controller_event));
+    free(event);
 
     return 0;
+}
+
+int destruct_destination(vec_pointer structure, v_string source, v_string destination, int controller_fd){
+    dest_t dest = get_destination(structure, source, destination);
+    if(dest.not_found){
+        return ERR_DESTINATION_NOT_FOUND;
+    }
+
+    controller_event_pointer event = malloc(sizeof(struct controller_event));
+    event->key = dest.key;
+    event->source_key = -1; // Not needed for stop
+    event->type = ET_SYNC_STOP;
+    strcpy(event->source, source->value);
+    strcpy(event->destination, destination->value);
+
+    write_event(controller_fd, event, sizeof(struct controller_event));
+    free(event);
+
+    remove_destination(structure, source, destination);
+
+    return 0;
+}
+
+void setup_recover(vec_pointer structure, v_string source, v_string destination, int controller_fd){
+    controller_event_pointer event = malloc(sizeof(struct controller_event));
+    event->key = -1; // Not needed for recover
+    event->source_key = -1; // Not needed for recover
+    event->type = ET_RESTORE;
+    strcpy(event->source, source->value);
+    strcpy(event->destination, destination->value);
+
+    write_event(controller_fd, event, sizeof(struct controller_event));
+    free(event);
 }
 
 int handle_input(vec_pointer structure, v_string input){
@@ -63,6 +91,10 @@ int main() {
     char tempfilename[] = "/tmp/inputXXXXXX";
     int inotify_fd = mkstemp(tempfilename); // Initialize inotify mockup
     int stdin_fd = STDIN_FILENO;
+
+    long controller_pipe[2];
+    try(pipe(controller_pipe));
+    pid_t controller_pid = create_controller(controller_pipe, ".");
 
     fcntl(stdin_fd, F_SETFL, O_NONBLOCK);
     int max_fd = (inotify_fd > stdin_fd) ? inotify_fd : stdin_fd;

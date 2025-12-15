@@ -9,15 +9,16 @@ struct source_structure {
     v_string source;
     vec_pointer destinations; // vector of v_string
 
+    int key;
     long pipe_wr_fd;
-    long pipe_rd_fd;
 
     bool not_found;
 };
 
 struct destination_structure {
     v_string destination;
-    pid_t pid;
+
+    int key;
 
     bool not_found;
 };
@@ -32,11 +33,11 @@ vec_pointer create_structure();
 
 source_t get_source(vec_pointer structure, v_string source);
 
-void add_source(vec_pointer structure, v_string source, long pipe_rd_fd, long pipe_wr_fd);
+void add_source(vec_pointer structure, v_string source, long pipe_wr_fd);
 
 dest_t get_destination(vec_pointer structure, v_string source, v_string destination);
 
-void add_destination(vec_pointer structure, v_string source, v_string destination, pid_t pid);
+void add_destination(vec_pointer structure, v_string source, v_string destination, int key);
 
 void remove_destination(vec_pointer structure, v_string source, v_string destination);
 

@@ -1,5 +1,8 @@
 #include "../includes/vector.h"
+#include "../includes/sync.h"
 
-void run_sync(v_string source, v_string destinations, int fd){
+void run_sync(const char* source, const char* destinations, char* fifo_path){
+    // Copy source to destination 
 
+    // Enter loop reading events from fifo_path and syncing files
 }

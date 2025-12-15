@@ -24,15 +24,15 @@ source_t get_source(vec_pointer structure, v_string source){
     return SOURCE_NOT_FOUND;
 }
 
-void add_source(vec_pointer structure, v_string source, long pipe_rd_fd, long pipe_wr_fd){
+void add_source(vec_pointer structure, v_string source, long pipe_wr_fd){
     if(!get_source(structure, source).not_found) return;
 
     source_t new_source;
     // vector_copy(&new_source.source, source);
     new_source.source = source;
     new_source.destinations = vector_create(sizeof(dest_t));
-    new_source.pipe_rd_fd = pipe_rd_fd;
     new_source.pipe_wr_fd = pipe_wr_fd;
+    new_source.key = structure->size;
     new_source.not_found = false;
 
     vector_push(structure, &new_source);
@@ -53,14 +53,14 @@ dest_t get_destination(vec_pointer structure, v_string source, v_string destinat
     return DESTINATION_NOT_FOUND;
 }
 
-void add_destination(vec_pointer structure, v_string source, v_string destination, pid_t pid){
+void add_destination(vec_pointer structure, v_string source, v_string destination, int key){
     source_t src_vec = get_source(structure, source);
     if(src_vec.not_found) return; // Throw error?
 
     if(!get_destination(structure, source, destination).not_found) return;
 
     dest_t new_destination;
-    new_destination.pid = pid;
+    new_destination.key = key;
     // vector_copy(&new_destination.destination, destination);
     new_destination.destination = destination;
     new_destination.not_found = false;

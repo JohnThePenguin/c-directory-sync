@@ -3,6 +3,8 @@
 
 #include "vector.h"
 
-void run_sync(v_string source, v_string destinations, int fd);
+void run_sync(const char* source, const char* destinations, char* fifo_path);
+
+void run_recover(const char* source, const char* destinations);
 
 #endif // SYNC_H
