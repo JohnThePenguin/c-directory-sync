@@ -3,6 +3,7 @@
 
 #define _GNU_SOURCE
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -31,8 +32,11 @@ enum program_error {
 
 size_t read_stdin(int stdin_fd, v_string buffer);
 
+vec_pointer parse_line(v_string line);
 
+vec_pointer handle_parsed_line(vec_pointer splitted);
 
-
+bool validate_splitted_input(vec_pointer splitted);
+    
 
 #endif //UTILS_H

@@ -72,7 +72,47 @@ void setup_recover(vec_pointer structure, v_string source, v_string destination,
 }
 
 int handle_input(vec_pointer structure, v_string input){
-    printf("Handling input: %s\n", input->value);
+    // printf("Handling input: %s\n", input->value);
+    if(input->size <= 2) return -1;
+
+    vec_pointer splitted = parse_line(input);
+
+    vec_pointer parsed = handle_parsed_line(splitted);
+    if(parsed == NULL || !validate_splitted_input(parsed)){
+        for(int i = 0; i < splitted->size; i++)
+            vector_delete(v_get_vec(splitted, i));
+        vector_delete(splitted);
+        return -1;
+    }
+
+    v_string command = v_get_vec(splitted, 0);
+    v_string source = v_get_vec(splitted, 1);
+
+    for(int i = 2; i < parsed->size; i++){
+        printf("Running %s with source %s and destination %s\n",
+            command->value, source->value,
+            v_get_vec(parsed, i)->value);
+
+
+        vector_delete(v_get_vec(parsed, i));
+    }
+    vector_delete(parsed);
+
+    return 0;
+
+    if(!strcmp(command->value, "add")){
+
+    } else if(!strcmp(command->value, "remove")){
+
+    } else if(!strcmp(command->value, "list")){
+    
+    } else if(!strcmp(command->value, "recover")){
+
+    } else if(!strcmp(command->value, "exit")){
+
+    } else {
+
+    }
 
     return 0;
 }
@@ -117,7 +157,7 @@ int main() {
 
         if(FD_ISSET(stdin_fd, &read_fd)){
             size_t bytes_read = read_stdin(stdin_fd, input_buffer);
-            printf("Read %zu bytes from stdin\n", bytes_read);
+            // printf("Read %zu bytes from stdin\n", bytes_read);
 
             handle_input(structure, input_buffer);
         }

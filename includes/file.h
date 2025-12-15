@@ -1,11 +1,13 @@
 #ifndef FILE_H
-#define FILE
+#define FILE_H
 
 // All paths should be absolute
 
 int copy_file(char* source, char* destination);
 
 int copy_directory(char* source, char* destination);
+
+int ensure_directory_exists(char* path);
 
 char* join_paths(char* path1, char* path2);
 
