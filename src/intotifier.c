@@ -14,26 +14,9 @@
 #include "../includes/utils.h"
 #include "../includes/events.h"
 #include "../includes/file.h"
+#include "../includes/inotifier.h"
 
-#define MAX_WATCHES 8192
-#define EVENT_BUF_LEN (64 * (sizeof(struct inotify_event) + NAME_MAX + 1))
-
-struct Watch
-{
-    int wd;      // key
-    char* path;  // value
-};
-
-struct WatchMap
-{
-    struct Watch watch_map[MAX_WATCHES];
-    int watch_count;
-    int inotify_fd;
-};
-
-typedef struct WatchMap* watch_map_t;
-
-void add_to_map(struct WatchMap* map, int wd, const char* path)
+void add_to_map(watch_map_t map, int wd, const char* path)
 {
     if (map->watch_count >= MAX_WATCHES)
     {
@@ -46,7 +29,7 @@ void add_to_map(struct WatchMap* map, int wd, const char* path)
     printf("new watch: '%s' @wd=%d\n", path, wd);
 }
 
-struct Watch* find_watch(watch_map_t map, int wd)
+watch_t find_watch(watch_map_t map, int wd)
 {
     for (int i = 0; i < map->watch_count; i++)
     {
@@ -128,7 +111,7 @@ void update_watch_paths(watch_map_t map, const char* old_path, const char* new_p
 
 watch_map_t setup_inotify()
 {
-    int inotify_fd = inotify_init();
+    int inotify_fd = inotify_init1(IN_NONBLOCK);
     if (inotify_fd < 0)
     {
         error("inotify_init");
@@ -166,7 +149,21 @@ void notify_sources(vec_pointer structure, enum sync_event_type et, char* path){
     free(event);
 }
 
-void handle_inotify_ready(watch_map_t map)
+void notify_sources_create(vec_pointer structure, char* path, bool is_dir){
+    enum sync_event_type et = is_dir ? ET_DIR_CREATED : ET_FILE_CREATED;
+    notify_sources(structure, et, path);
+}
+
+void notify_sources_delete(vec_pointer structure, char* path, bool is_dir){
+    enum sync_event_type et = is_dir ? ET_DIR_DELETED : ET_FILE_DELETED;
+    notify_sources(structure, et, path);
+}
+
+void notify_sources_modify(vec_pointer structure, char* path){
+    notify_sources(structure, ET_FILE_MODIFIED, path);
+}
+
+void handle_inotify_ready(vec_pointer structure, watch_map_t map)
 {
     uint32_t pending_cookie = 0;
     char pending_move_path[PATH_MAX] = "";
@@ -181,9 +178,10 @@ void handle_inotify_ready(watch_map_t map)
     {
         struct inotify_event* event = (struct inotify_event*)&buffer[i];
 
-        printf("[i=%ld] [ev=0x%08x] [wd=%d] ", i, event->mask, event->wd);
+        // printf("[i=%ld] [ev=0x%08x] [wd=%d] ", i, event->mask, event->wd);
 
         struct Watch* watch = find_watch(map, event->wd);
+        bool is_dir = event->mask & IN_ISDIR;
 
         char event_path[PATH_MAX] = "";
         if (watch && event->len > 0)
@@ -204,25 +202,29 @@ void handle_inotify_ready(watch_map_t map)
 
         if (event->mask & IN_CREATE)
         {
-            printf("CREATED");
+            // printf("CREATED");
+            notify_sources_create(structure, event_path, is_dir);
+
             if( event->mask & IN_ISDIR ) 
                 add_watch_recursive(map->inotify_fd, map, event_path);
         }
         if (event->mask & IN_DELETE)
         {
-            printf("DELETED");
+            // printf("DELETED");
+            notify_sources_delete(structure, event_path, is_dir);
         }
         else if (event->mask & IN_MOVED_FROM)
         {
-            printf("MOVED_FROM (cookie=%u)", event->cookie);
+            // printf("MOVED_FROM (cookie=%u)", event->cookie);
             pending_cookie = event->cookie;
             strncpy(pending_move_path, event_path, sizeof(pending_move_path));
 
             // Treat as deleted
+            notify_sources_delete(structure, event_path, is_dir);
         }
         else if (event->mask & IN_MOVED_TO)
         {
-            printf("MOVED_TO (cookie=%u)", event->cookie);
+            // printf("MOVED_TO (cookie=%u)", event->cookie);
 
             if (event->cookie == pending_cookie && pending_cookie != 0)
             {
@@ -236,10 +238,17 @@ void handle_inotify_ready(watch_map_t map)
             }
 
             // Treat as created
+            notify_sources_create(structure, event_path, is_dir);
+        }
+        else if (event->mask & IN_MODIFY)
+        {
+            // printf("MODIFIED");
+            if(!is_dir)
+                notify_sources_modify(structure, event_path);
         }
 
         i += sizeof(struct inotify_event) + event->len;
-        printf("\n");
+        // printf("\n");
     }
 
     /*

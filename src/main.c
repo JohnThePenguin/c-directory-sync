@@ -10,35 +10,46 @@
 #include "../includes/sync.h"
 #include "../includes/events.h"
 #include "../includes/controller.h"
+#include "../includes/inotifier.h"
+
+struct s_main {
+    vec_pointer structure;
+    watch_map_t inotify_map;
+    int controller_fd;
+    int* max_dest_key;
+};
 
 
-int setup_destination(vec_pointer structure, v_string source, v_string destination, int controller_fd, int* max_dest_key){
-    dest_t dest = get_destination(structure, source, destination);
+int setup_destination(struct s_main dt, v_string source, v_string destination){
+    dest_t dest = get_destination(dt.structure, source, destination);
     if(!dest.not_found){
         return ERR_DESTINATION_ALREADY_EXISTS;
     }
 
-    source_t src = get_source(structure, source);
+    source_t src = get_source(dt.structure, source);
 
-    int new_key = structure->size + 1;
+    int new_key = dt.structure->size + 1;
     if(src.not_found){
         int pipe_fd = open_pipe_fd(new_key, getpid());
 
         printf("In setup_destination: Adding source %s with key %d\n", source->value, new_key);        
-        add_source(structure, source, new_key, pipe_fd);
+
+        add_source(dt.structure, source, new_key, pipe_fd);
+        // Duplicate should be ok
+        add_watch_recursive(dt.inotify_map->inotify_fd, dt.inotify_map, source->value);
     }
 
-    (*max_dest_key)++;
-    add_destination(structure, source, destination, *max_dest_key);
+    *(dt.max_dest_key) += 1;
+    add_destination(dt.structure, source, destination, *(dt.max_dest_key));
 
     controller_event_pointer event = malloc(sizeof(struct controller_event));
-    event->key = *max_dest_key;
+    event->key = *(dt.max_dest_key);
     event->source_key = src.not_found ? new_key : src.key;
     event->type = ET_SYNC_START;
     strcpy(event->source, source->value);
     strcpy(event->destination, destination->value);
 
-    write_event(controller_fd, event, sizeof(struct controller_event));
+    write_event(dt.controller_fd, event, sizeof(struct controller_event));
     free(event);
 
     return 0;
@@ -77,7 +88,7 @@ void setup_recover(vec_pointer structure, v_string source, v_string destination,
     free(event);
 }
 
-int handle_input(vec_pointer structure, v_string input, int controller_fd, int* max_dest_key){
+int handle_input(struct s_main dt, v_string input){
     // printf("Handling input: %s\n", input->value);
     if(input->size <= 2) return -1;
 
@@ -100,7 +111,7 @@ int handle_input(vec_pointer structure, v_string input, int controller_fd, int* 
             v_get_vec(parsed, i)->value);
 
         if(!strcmp(command->value, "add")){
-            setup_destination(structure, source, v_get_vec(parsed, i), controller_fd, max_dest_key);
+            setup_destination(dt, source, v_get_vec(parsed, i));
         }
 
         vector_delete(v_get_vec(parsed, i));
@@ -126,8 +137,8 @@ int handle_input(vec_pointer structure, v_string input, int controller_fd, int* 
     return 0;
 }
 
-int handle_inotify_event(vec_pointer structure, vec_pointer event){
-    // Read and handle inotify events
+int handle_inotify_event(struct s_main dt){
+    handle_inotify_ready(dt.structure, dt.inotify_map);
     return 0;
 }
 
@@ -139,8 +150,8 @@ int main() {
 
     int max_dest_key = 1;
 
-    char tempfilename[] = "/tmp/inputXXXXXX";
-    int inotify_fd = mkstemp(tempfilename); // Initialize inotify mockup
+    watch_map_t inotify_map = setup_inotify();
+    int inotify_fd = inotify_map->inotify_fd;
     int stdin_fd = STDIN_FILENO;
 
     int controller_pipe[2];
@@ -152,6 +163,13 @@ int main() {
     fcntl(stdin_fd, F_SETFL, O_NONBLOCK);
     int max_fd = (inotify_fd > stdin_fd) ? inotify_fd : stdin_fd;
     fd_set read_fd;
+
+    struct s_main main_data = {
+        structure,
+        inotify_map,
+        controller_pipe[1],
+        &max_dest_key
+    };
 
     // Main loop
     while(1){
@@ -165,22 +183,24 @@ int main() {
         if(activity < 0) error("Select error");
 
         if(FD_ISSET(inotify_fd, &read_fd)){
-            handle_inotify_event(structure, NULL); // Mock inotify handling
+            handle_inotify_event(main_data);
         }
 
         if(FD_ISSET(stdin_fd, &read_fd)){
             size_t bytes_read = read_stdin(stdin_fd, input_buffer);
             // printf("Read %zu bytes from stdin\n", bytes_read);
 
-            handle_input(structure, input_buffer, controller_pipe[1], &max_dest_key);
+            handle_input(main_data, input_buffer);
         }
     }
 
     close(inotify_fd);
 
     vector_delete(input_buffer);
-    unlink(tempfilename);
+
+    // Close all pipes and controller
     delete_structure(structure);
+    delete_inotify(inotify_map);
 
     return EXIT_SUCCESS;
 }
