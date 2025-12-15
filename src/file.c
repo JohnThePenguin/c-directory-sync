@@ -10,6 +10,28 @@
 #include <dirent.h>
 
 
+ssize_t read_bulk(int fd, char* buf, size_t count){
+    size_t total_read = 0;
+    while(total_read < count){
+        ssize_t curr_read = read(fd, buf + total_read, count - total_read);
+        if(curr_read < 0) error("read error in read_bulk");
+        if(curr_read == 0) break;
+        total_read += curr_read;
+    }
+    return total_read;
+}
+
+ssize_t write_bulk(int fd, char* buf, size_t count){
+    size_t total_write = 0;
+    while(total_write < count){
+        ssize_t curr_written = write(fd, buf + total_write, count - total_write);
+        if(curr_written < 0) error("write error in write_bulk");
+        total_write += curr_written;
+    }
+    return total_write;
+}
+
+
 int copy_file(char* source, char* destination){
     const int BUF_SIZE = 4096;
     char buf[BUF_SIZE];
@@ -17,32 +39,29 @@ int copy_file(char* source, char* destination){
     int src_fd = open(source, O_RDONLY);
     int dest_fd = open(destination, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL, 0777);
 
-    ssize_t curr_read = 0;
-    ssize_t all_write = 0;
+    if(src_fd < 0) error("Error opening source file for reading");
+    if(dest_fd < 0) error("Error opening destination file for writing");
 
-    curr_read = read(src_fd, buf, BUF_SIZE);
-    while(curr_read > 0){
-        ssize_t curr_write = 0;
-        ssize_t total_write = 0;
-
-        while(total_write <= curr_read){
-            curr_write = 
-                write(dest_fd, buf+total_write, curr_read - total_write);
-
-            total_write += curr_write;
-        }
-        all_write += total_write;
-        curr_read = read(src_fd, buf, BUF_SIZE);
+    ssize_t current_read = 0;
+    while(1){
+        current_read = read_bulk(src_fd, buf, BUF_SIZE);
+        if(current_read == 0) break;
+        write_bulk(dest_fd, buf, current_read); 
     }
 
-    return all_write;
+    try(close(src_fd));
+    try(close(dest_fd));
+
+    return 0;
 }
 
 int copy_directory(char* source, char* destination){
     DIR* dir = opendir(source);
     if(!dir) error("opendir");
 
-    try(mkdir(destination, 0777));
+    if(access(destination, F_OK) == -1)
+        try(mkdir(destination, 0777));
+
     struct dirent* dp;
     struct stat st;
 
@@ -59,12 +78,15 @@ int copy_directory(char* source, char* destination){
         } else {
             copy_file(src_path, dest_path);
         }
+
+        printf("Copied %s to %s\n", src_path, dest_path);
         // handle links
 
         free(src_path);
         free(dest_path);
     }
 
+    closedir(dir);
     return 0;
 }
 
@@ -101,10 +123,9 @@ char* join_paths(char* path1, char* path2){
         path2[p2len] = 0;
     }
 
-    ssize_t buf_size = snprintf(NULL, -1, "%s/%s", path1, path2);
+    ssize_t buf_size = snprintf(NULL, 0, "%s/%s", path1, path2);
     char* result = (char*)malloc((buf_size+1)*sizeof(char));
-    snprintf(result, buf_size, "%s/%s", path1, path2);
-    path2[buf_size] = 0;
+    snprintf(result, buf_size + 1, "%s/%s", path1, path2);
 
     return result;
 }
@@ -112,10 +133,12 @@ char* join_paths(char* path1, char* path2){
 char* get_relative_path(char* base_path, char* path){
     const int base_path_len = strlen(base_path);
     const int path_len = strlen(path);
-    char* result = (char*)malloc((path_len - base_path_len + 1)*sizeof(char));
+    const int res_len = path_len - base_path_len - 1; // base has /
 
-    strncpy(result, path + base_path_len, path_len - base_path_len);
-    result[path_len - base_path_len] = 0;
+    char* result = (char*)malloc((res_len + 1)*sizeof(char));
+
+    strncpy(result, path + base_path_len + 1, res_len);
+    result[res_len] = 0;
     return result;
 }
 
@@ -176,6 +199,20 @@ int handle_delete_dir(char* base_path, char* source, char* destination){
 
     return res;
 }
+
+int handle_modified_file(char* base_path, char* source, char* destination){
+    char* rel_path = get_relative_path(base_path, source);
+    char* dest_path = join_paths(destination, rel_path);
+
+    unlink(dest_path);
+    int res = copy_file(source, dest_path);
+
+    free(rel_path);
+    free(dest_path);
+
+    return res;
+}
+
 
 int handle_move(char* base_path, char* source, char* destination, char* new_source){
     char* rel_path = get_relative_path(base_path, source);

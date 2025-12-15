@@ -24,6 +24,8 @@ int handle_delete_file(char* base_path, char* source, char* destination);
 
 int handle_delete_dir(char* base_path, char* source, char* destination);
 
+int handle_modified_file(char* base_path, char* source, char* destination);
+
 int handle_move(char* base_path, char* source, char* destination, char* new_source);
 
 #endif //FILE_H

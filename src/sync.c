@@ -2,6 +2,7 @@
 #include "../includes/sync.h"
 #include "../includes/utils.h"
 #include "../includes/events.h"
+#include "../includes/file.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -10,14 +11,19 @@
 void handle_sync_event(sync_event_pointer event, const char* source, const char* destination){
     switch (event->type){
         case ET_FILE_CREATED:
+            handle_create_file(source, event->path, destination);
             break;
         case ET_FILE_DELETED:
+            handle_delete_file(source, event->path, destination);
             break;
         case ET_FILE_MODIFIED:
+            handle_modified_file(source, event->path, destination);
             break;
         case ET_DIR_CREATED:
+            handle_create_dir(source, event->path, destination);
             break;
         case ET_DIR_DELETED:
+            handle_delete_dir(source, event->path, destination);
             break;
         default:
             break;
@@ -28,7 +34,8 @@ void run_sync(const char* source, const char* destinations, char* fifo_path){
     printf("Starting sync from %s to %s using fifo %s\n",
         source, destinations, fifo_path);
 
-    // Copy source to destination 
+    // Copy source to destination
+    copy_directory(source, destinations);
 
     // Enter loop reading events from fifo_path and syncing files
     int fifo_fd = open(fifo_path, O_RDONLY);
