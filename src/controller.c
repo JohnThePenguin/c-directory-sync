@@ -89,6 +89,8 @@ int stop_sync_process(pid_t pid){
     try(kill(pid, SIGTERM));
     int status;
     try(waitpid(pid, &status, 0));
+
+    printf("Got sync process %d stopped\n", pid);
     return status;
 }
 

@@ -55,36 +55,38 @@ int setup_destination(struct s_main dt, v_string source, v_string destination){
     return 0;
 }
 
-int destruct_destination(vec_pointer structure, v_string source, v_string destination, int controller_fd){
-    dest_t dest = get_destination(structure, source, destination);
+int destruct_destination(struct s_main dt, v_string source, v_string destination){
+    dest_t dest = get_destination(dt.structure, source, destination);
     if(dest.not_found){
+        printf("Destination %s not found for source %s\n", destination->value, source->value);
         return ERR_DESTINATION_NOT_FOUND;
     }
 
     controller_event_pointer event = malloc(sizeof(struct controller_event));
     event->key = dest.key;
-    event->source_key = -1; // Not needed for stop
+    event->source_key = -1;      // Not needed for stop
     event->type = ET_SYNC_STOP;
     strcpy(event->source, source->value);
     strcpy(event->destination, destination->value);
 
-    write_event(controller_fd, event, sizeof(struct controller_event));
+    printf("Sending stop event for source %s and destination %s\n", source->value, destination->value);
+    write_event(dt.controller_fd, event, sizeof(struct controller_event));
     free(event);
 
-    remove_destination(structure, source, destination);
+    remove_destination(dt.structure, source, destination);
 
     return 0;
 }
 
-void setup_recover(vec_pointer structure, v_string source, v_string destination, int controller_fd){
+void setup_recover(struct s_main dt, v_string source, v_string destination){
     controller_event_pointer event = malloc(sizeof(struct controller_event));
-    event->key = -1; // Not needed for recover
-    event->source_key = -1; // Not needed for recover
+    event->key = -1;            // Not needed for recover
+    event->source_key = -1;     // Not needed for recover
     event->type = ET_RESTORE;
     strcpy(event->source, source->value);
     strcpy(event->destination, destination->value);
 
-    write_event(controller_fd, event, sizeof(struct controller_event));
+    write_event(dt.controller_fd, event, sizeof(struct controller_event));
     free(event);
 }
 
@@ -113,26 +115,25 @@ int handle_input(struct s_main dt, v_string input){
         if(!strcmp(command->value, "add")){
             setup_destination(dt, source, v_get_vec(parsed, i));
         }
+        if(!strcmp(command->value, "remove")){
+            destruct_destination(dt, source, v_get_vec(parsed, i));
+        }
+        if(!strcmp(command->value, "recover")){
+            setup_recover(dt, source, v_get_vec(parsed, i));
+        }
 
         vector_delete(v_get_vec(parsed, i));
     }
-    vector_delete(parsed);
 
-    return 0;
-
-    if(!strcmp(command->value, "add")){
-
-    } else if(!strcmp(command->value, "remove")){
-
-    } else if(!strcmp(command->value, "list")){
-    
-    } else if(!strcmp(command->value, "recover")){
-
-    } else if(!strcmp(command->value, "exit")){
-
-    } else {
-
+    if(!strcmp(command->value, "list")){
+        printf_structure(dt.structure);
     }
+    if(!strcmp(command->value, "exit")){
+        printf("Exiting...\n");
+        exit(EXIT_SUCCESS);
+    }
+
+    vector_delete(parsed);
 
     return 0;
 }

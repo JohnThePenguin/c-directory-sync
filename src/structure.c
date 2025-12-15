@@ -44,7 +44,7 @@ dest_t get_destination(vec_pointer structure, v_string source, v_string destinat
     source_t src_vec = get_source(structure, source);
     if(src_vec.not_found) return DESTINATION_NOT_FOUND;
 
-    for(int i = 1; i < src_vec.destinations->size; i++){
+    for(int i = 0; i < src_vec.destinations->size; i++){
         dest_t current = v_get_destination(src_vec.destinations, i);
         if(strcmp(destination->value, current.destination->value) == 0){
             return current;
@@ -61,8 +61,8 @@ void add_destination(vec_pointer structure, v_string source, v_string destinatio
 
     dest_t new_destination;
     new_destination.key = key;
-    // vector_copy(&new_destination.destination, destination);
-    new_destination.destination = destination;
+    vector_copy(&new_destination.destination, destination);
+    // new_destination.destination = destination;
     new_destination.not_found = false;
 
     vector_push(src_vec.destinations, &new_destination);
@@ -72,7 +72,7 @@ void remove_destination(vec_pointer structure, v_string source, v_string destina
     source_t src_vec = get_source(structure, source);
     if(src_vec.not_found) return; // Throw error?
 
-    int i = 1;
+    int i = 0;
     while(i < src_vec.destinations->size){
         dest_t dest = v_get_destination(src_vec.destinations, i);
         if(strcmp(dest.destination->value, destination->value) == 0){
@@ -138,6 +138,25 @@ void delete_structure(vec_pointer structure){
         remove_source(structure, source_name);
     }
     vector_delete(structure);
+}
+
+void printf_structure(vec_pointer structure){
+    printf("Currently running copies:\n");
+    int count = 0;
+
+    for(int i = 0; i < structure->size; i++){
+        source_t source = v_get_source(structure, i);
+        if(source.destinations->size == 0) continue;
+
+        printf("Source %s:\n", source.source->value);
+        count += source.destinations->size;
+
+        for(int j = 0; j < source.destinations->size; j++){
+            dest_t dest = v_get_destination(source.destinations, j);
+            printf("\t- Destination %s\n", dest.destination->value);
+        }
+    }
+    printf("Total: %d\n", count);
 }
 
 

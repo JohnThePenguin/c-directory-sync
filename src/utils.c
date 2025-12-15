@@ -77,11 +77,6 @@ vec_pointer parse_line(v_string line){
 }
 
 vec_pointer handle_parsed_line(vec_pointer splitted){
-    if(splitted->size < 3) {
-        printf("Command requires at least 3 arguments\n");
-        return NULL;
-    }
-
     for(int i = 1; i < splitted->size; i++){
         v_string* path = ((v_string*)(splitted->value) + i);
 
@@ -110,6 +105,31 @@ bool validate_splitted_input(vec_pointer splitted){
     // - valid command
     // - correct paths - existance, type, emptiness
     // - destination is not inside source 
-    
-    return true;
+    if(splitted->size == 0) return false;
+
+    v_string command = v_get_vec(splitted, 0);
+
+    if(!strcmp(command->value, "add") || 
+        !strcmp(command->value, "remove") || 
+        !strcmp(command->value, "recover")){
+
+        if(splitted->size < 3){
+            printf("Command %s requires at least 2 arguments\n", (char*)command->value);
+            return false;
+        }
+
+        return true;
+    }
+
+    if(!strcmp(command->value, "list") || !strcmp(command->value, "exit")){
+        if(splitted->size != 1){
+            printf("Command list does not take any arguments\n");
+            return false;
+        }
+
+        return true;
+    }
+   
+    printf("Unknown command: %s\n", (char*)command->value);
+    return false;
 }

@@ -45,6 +45,8 @@ void remove_source(vec_pointer structure, v_string source);
 
 void delete_structure(vec_pointer structure);
 
+void printf_structure(vec_pointer structure);
+
 source_t v_get_source(vec_pointer v, int index);
 
 dest_t v_get_destination(vec_pointer v, int index);
