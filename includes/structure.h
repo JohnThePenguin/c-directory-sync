@@ -33,7 +33,7 @@ vec_pointer create_structure();
 
 source_t get_source(vec_pointer structure, v_string source);
 
-void add_source(vec_pointer structure, v_string source, long pipe_wr_fd);
+void add_source(vec_pointer structure, v_string source, int key, int pipe_wr_fd);
 
 dest_t get_destination(vec_pointer structure, v_string source, v_string destination);
 

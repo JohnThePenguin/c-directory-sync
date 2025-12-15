@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/select.h>
 
 #include "../includes/vector.h"
 #include "../includes/structure.h"
@@ -10,7 +11,8 @@
 #include "../includes/events.h"
 #include "../includes/controller.h"
 
-int setup_destination(vec_pointer structure, v_string source, v_string destination, int controller_fd){
+
+int setup_destination(vec_pointer structure, v_string source, v_string destination, int controller_fd, int* max_dest_key){
     dest_t dest = get_destination(structure, source, destination);
     if(!dest.not_found){
         return ERR_DESTINATION_ALREADY_EXISTS;
@@ -18,16 +20,20 @@ int setup_destination(vec_pointer structure, v_string source, v_string destinati
 
     source_t src = get_source(structure, source);
 
+    int new_key = structure->size + 1;
     if(src.not_found){
-        add_source(structure, source, -1);
+        int pipe_fd = open_pipe_fd(new_key, getpid());
+
+        printf("In setup_destination: Adding source %s with key %d\n", source->value, new_key);        
+        add_source(structure, source, new_key, pipe_fd);
     }
 
-    int destination_key = -2; // Generate unique key for destination
-    add_destination(structure, source, destination, destination_key);
+    (*max_dest_key)++;
+    add_destination(structure, source, destination, *max_dest_key);
 
     controller_event_pointer event = malloc(sizeof(struct controller_event));
-    event->key = destination_key;
-    event->source_key = src.key;
+    event->key = *max_dest_key;
+    event->source_key = src.not_found ? new_key : src.key;
     event->type = ET_SYNC_START;
     strcpy(event->source, source->value);
     strcpy(event->destination, destination->value);
@@ -71,7 +77,7 @@ void setup_recover(vec_pointer structure, v_string source, v_string destination,
     free(event);
 }
 
-int handle_input(vec_pointer structure, v_string input){
+int handle_input(vec_pointer structure, v_string input, int controller_fd, int* max_dest_key){
     // printf("Handling input: %s\n", input->value);
     if(input->size <= 2) return -1;
 
@@ -93,6 +99,9 @@ int handle_input(vec_pointer structure, v_string input){
             command->value, source->value,
             v_get_vec(parsed, i)->value);
 
+        if(!strcmp(command->value, "add")){
+            setup_destination(structure, source, v_get_vec(parsed, i), controller_fd, max_dest_key);
+        }
 
         vector_delete(v_get_vec(parsed, i));
     }
@@ -128,13 +137,17 @@ int main() {
     v_string input_buffer = vector_create(sizeof(char));
     vector_set_size(input_buffer, 128);
 
+    int max_dest_key = 1;
+
     char tempfilename[] = "/tmp/inputXXXXXX";
     int inotify_fd = mkstemp(tempfilename); // Initialize inotify mockup
     int stdin_fd = STDIN_FILENO;
 
-    long controller_pipe[2];
+    int controller_pipe[2];
     try(pipe(controller_pipe));
     pid_t controller_pid = create_controller(controller_pipe, ".");
+    controller_pipe[0] = -1; // Closed during controller creation
+    
 
     fcntl(stdin_fd, F_SETFL, O_NONBLOCK);
     int max_fd = (inotify_fd > stdin_fd) ? inotify_fd : stdin_fd;
@@ -159,7 +172,7 @@ int main() {
             size_t bytes_read = read_stdin(stdin_fd, input_buffer);
             // printf("Read %zu bytes from stdin\n", bytes_read);
 
-            handle_input(structure, input_buffer);
+            handle_input(structure, input_buffer, controller_pipe[1], &max_dest_key);
         }
     }
 

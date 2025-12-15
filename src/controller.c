@@ -2,17 +2,19 @@
 #include "../includes/events.h"
 #include "../includes/utils.h"
 #include "../includes/sync.h"
+#include "../includes/file.h"
 
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 #include <sys/fcntl.h>
 
 
-pid_t create_controller(long pipe_fd[2], char* base_path){
+pid_t create_controller(int pipe_fd[2], char* base_path){
     pid_t f = fork();
     if(f < 0){
         perror("Fork error in create_controller");
@@ -20,7 +22,7 @@ pid_t create_controller(long pipe_fd[2], char* base_path){
     }
     if(f == 0){
 
-        controller_loop(pipe_fd[1], base_path);
+        controller_loop(pipe_fd[0], base_path);
 
         try(close(pipe_fd[0]));
         try(close(pipe_fd[1]));
@@ -32,15 +34,33 @@ pid_t create_controller(long pipe_fd[2], char* base_path){
     }
 }
 
-char* get_fifo_path(int key){
+char* get_fifo_path(int key, pid_t pid){
     size_t size = 32; // 13 + 7 + 7 + margin;
     char* fifo_name = malloc(size * sizeof(char));
-    snprintf(fifo_name, size, "/tmp/dirsync/%d/%d", getpid(), key);
+    snprintf(fifo_name, size, "/tmp/dirsync/%d/%d", pid, key);
     return fifo_name;
 }
 
+int open_pipe_fd(int key, pid_t pid){
+    char* pipe_path = get_fifo_path(key, pid);
+    printf("Opening fifo pipe at %s for key %d\n", pipe_path, key);
+
+    if(access(pipe_path, F_OK) == -1){
+        try(mkfifo(pipe_path, 0666));
+    }
+
+    int fd = open(pipe_path, O_RDWR);
+
+    if(fd < 0){
+        printf("Error opening fifo pipe for key %d\n", key);
+    }
+
+    free(pipe_path);
+    return fd;
+}
+
 void start_sync_process(int key, int source_key, char* source, char* destination, pid_t* set_pid, int main_pipe_fd){
-    char* fifo_path = get_fifo_path(source_key);
+    char* fifo_path = get_fifo_path(source_key, getppid());
 
     // Fifos are per source, so it can exist already
     if(access(fifo_path, F_OK) == -1){
@@ -95,12 +115,16 @@ void controller_loop(int pipe_fd, char* base_path){
     memset(fork_pids, 0, sizeof(fork_pids));
     memset(fork_fds, 0, sizeof(fork_fds));
 
+    char* fifo_dir = malloc(32 * sizeof(char));
+    snprintf(fifo_dir, 32, "/tmp/dirsync/%d", getppid());
+    ensure_directory_exists(fifo_dir);
+
     while(1){
         controller_event_pointer event = read_controller_event(pipe_fd);
 
         switch(event->type){
             case ET_SYNC_START:
-                printf("Controller: Start sync from %s to %s\n", event->source, event->destination);
+                printf("Controller: Start sync from %s to %s (source-key=%d)\n", event->source, event->destination, event->source_key);
                 start_sync_process(
                     event->key, 
                     event->source_key,
@@ -131,4 +155,7 @@ void controller_loop(int pipe_fd, char* base_path){
 
         free(event); 
     }
+
+    // call on exit
+    unlink(fifo_dir);
 }

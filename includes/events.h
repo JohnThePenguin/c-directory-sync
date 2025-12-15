@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-const int PATH_SIZE = 2000;
+#define PATH_SIZE 2048
 
 enum controller_event_type {
     ET_SYNC_START = 0,
@@ -26,16 +26,15 @@ enum sync_event_type {
     ET_FILE_CREATED = 0,
     ET_FILE_DELETED = 1,
     ET_FILE_MODIFIED = 2,
-    ET_FILE_MOVED = 3,
+    // ET_FILE_MOVED = 3,
     ET_DIR_CREATED = 4,
     ET_DIR_DELETED = 5,
-    ET_DIR_MOVED = 6
+    // ET_DIR_MOVED = 6
 };
 
 struct sync_event {
     enum sync_event_type type;
     char path[PATH_SIZE];
-    char new_path[PATH_SIZE]; // Only for move
 };
 
 typedef struct sync_event* sync_event_pointer;

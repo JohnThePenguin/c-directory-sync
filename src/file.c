@@ -119,6 +119,16 @@ char* get_relative_path(char* base_path, char* path){
     return result;
 }
 
+bool is_subpath(char* base_path, char* path){
+    size_t base_len = strlen(base_path);
+    size_t path_len = strlen(path);
+
+    if (path_len < base_len)
+        return false;
+
+    return strncmp(base_path, path, base_len) == 0;
+}
+
 int handle_create_file(char* base_path, char* source, char* destination){
     char* rel_path = get_relative_path(base_path, source);
     char* dest_path = join_paths(destination, rel_path);

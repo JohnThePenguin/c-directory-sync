@@ -1,5 +1,5 @@
-#include <../includes/events.h>
-#include <../includes/utils.h>
+#include "../includes/events.h"
+#include "../includes/utils.h"
 
 void* read_event(int fd, size_t event_size){
     void* event = malloc(event_size);
