@@ -90,6 +90,34 @@ int copy_directory(char* source, char* destination){
     return 0;
 }
 
+int remove_directory(char* path){
+    DIR* dir = opendir(path);
+    if(!dir) error("opendir");
+
+    struct dirent* dp;
+    struct stat st;
+
+    while((dp = readdir(dir)) != NULL){
+        if(strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0)
+            continue;
+
+        char* curr_path = join_paths(path, dp->d_name);
+       
+        try(lstat(curr_path, &st));
+        if(S_ISDIR(st.st_mode)){
+            remove_directory(curr_path);
+        } else {
+            try(remove(curr_path));
+        }
+
+        free(curr_path);
+    }
+
+    closedir(dir);
+    try(rmdir(path));
+    return 0;
+}
+
 int ensure_directory_exists(char* path){
     struct stat st;
     if(stat(path, &st) == -1){
@@ -201,7 +229,7 @@ int handle_delete_dir(char* base_path, char* source, char* destination){
     char* rel_path = get_relative_path(base_path, source);
     char* dest_path = join_paths(destination, rel_path);
 
-    int res = rmdir(dest_path);
+    int res = remove_directory(dest_path);
 
     free(rel_path);
     free(dest_path);

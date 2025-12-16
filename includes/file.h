@@ -8,6 +8,8 @@ int copy_file(char* source, char* destination);
 
 int copy_directory(char* source, char* destination);
 
+int remove_directory(char* path);
+
 int ensure_directory_exists(char* path);
 
 int mkfakefifo(char* path);
