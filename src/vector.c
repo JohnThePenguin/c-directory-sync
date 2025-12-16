@@ -2,8 +2,8 @@
 #define _GNU_SOURCE
 #define _XOPEN_SOURCE 700
 
-#include "../includes/vector.h"
 #include "../includes/utils.h"
+#include "../includes/vector.h"
 
 #include <stdio.h>
 #include <stdlib.h>
