@@ -41,6 +41,8 @@ void run_sync(const char* source, const char* destinations, char* fifo_path){
     int fifo_fd = open(fifo_path, O_RDONLY);
     if(fifo_fd < 0) error("Error opening fifo in run_sync, stopping sync process");
 
+    try(lseek(fifo_fd, 0, SEEK_END));
+
     while(1){
         sync_event_pointer event = read_sync_event(fifo_fd);
         printf("Sync process received event %d on path %s\n",

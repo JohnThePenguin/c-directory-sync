@@ -45,9 +45,7 @@ int open_pipe_fd(int key, pid_t pid){
     char* pipe_path = get_fifo_path(key, pid);
     printf("Opening fifo pipe at %s for key %d\n", pipe_path, key);
 
-    if(access(pipe_path, F_OK) == -1){
-        try(mkfifo(pipe_path, 0666));
-    }
+    try(mkfakefifo(pipe_path));
 
     int fd = open(pipe_path, O_RDWR);
 
@@ -63,9 +61,7 @@ void start_sync_process(int key, int source_key, char* source, char* destination
     char* fifo_path = get_fifo_path(source_key, getppid());
 
     // Fifos are per source, so it can exist already
-    if(access(fifo_path, F_OK) == -1){
-        try(mkfifo(fifo_path, 0666));
-    }
+    mkfakefifo(fifo_path);
 
     pid_t f = fork();
     if(f < 0) error("Fork error in start_sync_process");

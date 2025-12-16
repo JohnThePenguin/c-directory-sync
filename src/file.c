@@ -98,6 +98,15 @@ int ensure_directory_exists(char* path){
     return 0;
 }
 
+int mkfakefifo(char* path){
+    if(access(path, F_OK) == -1){
+        int res = open(path, O_CREAT | O_EXCL, 0666);
+        if(res < 0) return res;
+        try(close(res));
+    }
+    return 0;
+}
+
 // int move_file(char* source, char* destination){
 //     return rename(source, destination);
 // }
