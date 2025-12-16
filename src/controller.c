@@ -1,3 +1,6 @@
+#define _GNU_SOURCE
+#define _XOPEN_SOURCE 700
+
 #include "../includes/controller.h"
 #include "../includes/events.h"
 #include "../includes/file.h"

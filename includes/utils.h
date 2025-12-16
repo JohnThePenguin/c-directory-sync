@@ -1,8 +1,6 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#define _GNU_SOURCE
-
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>

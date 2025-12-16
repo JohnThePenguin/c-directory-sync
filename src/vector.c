@@ -1,6 +1,6 @@
 // Source: https://github.com/JohnThePenguin/big-calculator-c
-
-// #include "error.h"
+#define _GNU_SOURCE
+#define _XOPEN_SOURCE 700
 
 #include "../includes/vector.h"
 #include "../includes/utils.h"

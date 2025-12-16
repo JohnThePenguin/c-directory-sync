@@ -1,3 +1,6 @@
+#define _GNU_SOURCE
+#define _XOPEN_SOURCE 700
+
 #include "../includes/sync.h"
 #include "../includes/events.h"
 #include "../includes/file.h"

@@ -1,3 +1,6 @@
+#define _GNU_SOURCE
+#define _XOPEN_SOURCE 700
+
 #include "../includes/file.h"
 #include "../includes/utils.h"
 

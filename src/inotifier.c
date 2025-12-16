@@ -1,3 +1,6 @@
+#define _GNU_SOURCE
+#define _XOPEN_SOURCE 700
+
 // Original source: https://gitlab.com/SaQQ/sop1/-/blob/master/05_events/watch_tree.c
 
 #include <dirent.h>

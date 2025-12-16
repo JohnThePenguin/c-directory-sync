@@ -1,3 +1,6 @@
+#define _GNU_SOURCE
+#define _XOPEN_SOURCE 700
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
