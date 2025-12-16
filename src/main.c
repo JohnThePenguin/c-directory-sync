@@ -86,17 +86,20 @@ int destruct_destination(struct s_main dt, v_string source, v_string destination
     return 0;
 }
 
-void setup_recover(struct s_main dt, v_string source, v_string destination)
-{
-    controller_event_pointer event = malloc(sizeof(struct controller_event));
-    event->key = -1;         // Not needed for recover
-    event->source_key = -1;  // Not needed for recover
-    event->type = ET_RESTORE;
-    strcpy(event->source, source->value);
-    strcpy(event->destination, destination->value);
+void setup_recover(struct s_main dt, v_string source, v_string destination){
+    // controller_event_pointer event = malloc(sizeof(struct controller_event));
+    // event->key = -1;            
+    // event->source_key = -1;  
+    // event->type = ET_RESTORE;
+    // strcpy(event->source, source->value);
+    // strcpy(event->destination, destination->value);
 
-    write_event(dt.controller_fd, event, sizeof(struct controller_event));
-    free(event);
+    // write_event(dt.controller_fd, event, sizeof(struct controller_event));
+    // free(event);
+
+    printf("Starting recover...\n");
+    recover_directory(source->value, destination->value);
+    printf("Recover finished.\n");
 }
 
 int handle_input(struct s_main dt, v_string input)

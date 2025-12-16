@@ -303,3 +303,73 @@ int handle_move(char* base_path, char* source, char* destination, char* new_sour
 
     return res;
 }
+
+int recover_directory(char* destination, char* source){
+    DIR* src_dir = opendir(source);
+    if(!src_dir) error("opendir");
+
+    ensure_directory_exists(destination);
+
+    DIR* dest_dir = opendir(destination);
+    if(!dest_dir) error("opendir");
+
+    struct dirent* dp;
+    struct stat st_src, st_dst;
+
+    // remove non-existing files/dirs from destination
+    while((dp = readdir(dest_dir)) != NULL){
+
+        if(strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0)
+            continue;
+
+        char* curr_path = join_paths(source, dp->d_name);
+        char* dest_path = join_paths(destination, dp->d_name);
+
+        if(lstat(curr_path, &st_src) < 0){
+            try(lstat(dest_path, &st_dst)); 
+
+            if(S_ISDIR(st_dst.st_mode)){
+                remove_directory(dest_path);
+            } else {
+               try(remove(dest_path));
+            }
+        }
+
+        free(curr_path);
+        free(dest_path);
+    }
+
+    // sync rest of files
+    while((dp = readdir(src_dir)) != NULL){
+
+        if(strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0)
+            continue;
+
+        char* curr_path = join_paths(source, dp->d_name);
+        char* dest_path = join_paths(destination, dp->d_name);
+
+        try(lstat(curr_path, &st_src)); 
+        if(lstat(dest_path, &st_dst) < 0){
+            if(S_ISDIR(st_src.st_mode)){
+                copy_directory(curr_path, dest_path);
+            } else {
+                copy_file(curr_path, dest_path);
+            }
+        }
+        else if(st_src.st_mtim.tv_sec > st_dst.st_mtim.tv_sec){
+            if(S_ISDIR(st_src.st_mode)){
+                recover_directory(dest_path, curr_path);
+            } else {
+                try(remove(dest_path));
+                copy_file(curr_path, dest_path);
+            }
+        }
+       
+        free(curr_path);
+        free(dest_path);
+    }
+
+    try(closedir(src_dir));
+    try(closedir(dest_dir));
+    return 0;
+}
