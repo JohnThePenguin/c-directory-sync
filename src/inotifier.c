@@ -126,6 +126,9 @@ watch_map_t setup_inotify()
 
 int delete_inotify(watch_map_t map)
 {
+    for (int i = 0; i < map->watch_count; i++)
+        free(map->watch_map[i].path);
+
     try(close(map->inotify_fd));
     free(map);
     return 0;

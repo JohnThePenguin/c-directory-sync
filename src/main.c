@@ -86,10 +86,11 @@ int destruct_destination(struct s_main dt, v_string source, v_string destination
     return 0;
 }
 
-void setup_recover(struct s_main dt, v_string source, v_string destination){
+void setup_recover(struct s_main dt, v_string source, v_string destination)
+{
     // controller_event_pointer event = malloc(sizeof(struct controller_event));
-    // event->key = -1;            
-    // event->source_key = -1;  
+    // event->key = -1;
+    // event->source_key = -1;
     // event->type = ET_RESTORE;
     // strcpy(event->source, source->value);
     // strcpy(event->destination, destination->value);
@@ -137,8 +138,6 @@ int handle_input(struct s_main dt, v_string input)
         {
             setup_recover(dt, source, v_get_vec(parsed, i));
         }
-
-        vector_delete(v_get_vec(parsed, i));
     }
 
     if (!strcmp(command->value, "list"))
@@ -151,6 +150,8 @@ int handle_input(struct s_main dt, v_string input)
         res = 1;
     }
 
+    for (int i = 0; i < parsed->size; i++)
+        vector_delete(v_get_vec(parsed, i));
     vector_delete(parsed);
 
     return res;
