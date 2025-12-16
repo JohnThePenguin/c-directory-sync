@@ -8,7 +8,9 @@ void* read_event(int fd, size_t event_size){
     ssize_t total_read = 0;
     while(total_read < event_size){
         ssize_t curr_read = read(fd, event + total_read, event_size - total_read);
-        if(curr_read < 0) error("Read error in read_event");
+        if(curr_read < 0) {
+            error("Read error in read_event, could not read full event");
+        }
         total_read += curr_read;
     }
 

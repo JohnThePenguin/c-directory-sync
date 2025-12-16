@@ -225,19 +225,19 @@ void handle_inotify_ready(vec_pointer structure, watch_map_t map)
         else if (event->mask & IN_MOVED_TO)
         {
             // printf("MOVED_TO (cookie=%u)", event->cookie);
-
-            if (event->cookie == pending_cookie && pending_cookie != 0)
-            {
-                update_watch_paths(map, pending_move_path, event_path);
-                pending_cookie = 0;
-                pending_move_path[0] = '\0';
+            if(is_dir){
+                if (event->cookie == pending_cookie && pending_cookie != 0)
+                {
+                    update_watch_paths(map, pending_move_path, event_path);
+                    pending_cookie = 0;
+                    pending_move_path[0] = '\0';
+                }
+                else
+                {
+                    add_watch_recursive(map->inotify_fd, map, event_path);
+                }
             }
-            else
-            {
-                add_watch_recursive(map->inotify_fd, map, event_path);
-            }
 
-            // Treat as created
             notify_sources_create(structure, event_path, is_dir);
         }
         else if (event->mask & IN_MODIFY)

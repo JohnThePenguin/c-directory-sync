@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/select.h>
 
 void handle_sync_event(sync_event_pointer event, const char* source, const char* destination){
     switch (event->type){
@@ -31,20 +32,38 @@ void handle_sync_event(sync_event_pointer event, const char* source, const char*
 }
 
 void run_sync(const char* source, const char* destinations, char* fifo_path){
-    printf("Starting sync from %s to %s using fifo %s\n",
-        source, destinations, fifo_path);
+    printf("Starting sync from %s to %s using fifo %s, with pid = %d\n",
+        source, destinations, fifo_path, getpid());
 
-    // Copy source to destination
+
     copy_directory(source, destinations);
 
-    // Enter loop reading events from fifo_path and syncing files
-    int fifo_fd = open(fifo_path, O_RDONLY);
+    int fifo_fd = open(fifo_path, O_RDONLY | O_NONBLOCK);
     if(fifo_fd < 0) error("Error opening fifo in run_sync, stopping sync process");
 
     try(lseek(fifo_fd, 0, SEEK_END));
 
+    // int signal_fd = setup_signal_fd();
+
+    fd_set read_fd;
+    int max_fd = fifo_fd;// (fifo_fd > signal_fd) ? fifo_fd : signal_fd;
+
     while(1){
+        FD_ZERO(&read_fd);
+        FD_SET(fifo_fd, &read_fd);
+        // FD_SET(signal_fd, &read_fd);
+        int activity = select(max_fd + 1, &read_fd, NULL, NULL, NULL);
+        if(activity < 0) error("select error in controller_loop");
+
+        // if(FD_ISSET(signal_fd, &read_fd)){
+        //     break;
+        // }
+        if(!FD_ISSET(fifo_fd, &read_fd)){
+            continue;
+        }
+
         sync_event_pointer event = read_sync_event(fifo_fd);
+
         printf("Sync process received event %d on path %s\n",
             event->type, event->path);
 
@@ -53,8 +72,11 @@ void run_sync(const char* source, const char* destinations, char* fifo_path){
         free(event);
     }
 
+    printf("Sync process exiting\n");
+
     // Cleanup
     try(close(fifo_fd));
+    // try(close(signal_fd));
 }
 
 void run_recover(const char* source, const char* destinations){

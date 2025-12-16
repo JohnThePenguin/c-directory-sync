@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/select.h>
+#include <sys/wait.h>
 
 #include "../includes/vector.h"
 #include "../includes/structure.h"
@@ -93,6 +94,7 @@ void setup_recover(struct s_main dt, v_string source, v_string destination){
 int handle_input(struct s_main dt, v_string input){
     // printf("Handling input: %s\n", input->value);
     if(input->size <= 2) return -1;
+    int res = 0;
 
     vec_pointer splitted = parse_line(input);
 
@@ -105,7 +107,7 @@ int handle_input(struct s_main dt, v_string input){
     }
 
     v_string command = v_get_vec(splitted, 0);
-    v_string source = v_get_vec(splitted, 1);
+    v_string source = splitted->size > 1 ? v_get_vec(splitted, 1) : NULL;
 
     for(int i = 2; i < parsed->size; i++){
         printf("Running %s with source %s and destination %s\n",
@@ -130,12 +132,12 @@ int handle_input(struct s_main dt, v_string input){
     }
     if(!strcmp(command->value, "exit")){
         printf("Exiting...\n");
-        exit(EXIT_SUCCESS);
+        res = 1;
     }
 
     vector_delete(parsed);
 
-    return 0;
+    return res;
 }
 
 int handle_inotify_event(struct s_main dt){
@@ -159,11 +161,14 @@ int main() {
     try(pipe(controller_pipe));
     pid_t controller_pid = create_controller(controller_pipe, ".");
     controller_pipe[0] = -1; // Closed during controller creation
-    
 
+    int signal_fd = setup_signal_fd();
+    
     fcntl(stdin_fd, F_SETFL, O_NONBLOCK);
     int max_fd = (inotify_fd > stdin_fd) ? inotify_fd : stdin_fd;
+    max_fd = (signal_fd > max_fd) ? signal_fd : max_fd;
     fd_set read_fd;
+
 
     struct s_main main_data = {
         structure,
@@ -177,6 +182,7 @@ int main() {
         FD_ZERO(&read_fd);
         FD_SET(inotify_fd, &read_fd);
         FD_SET(stdin_fd, &read_fd);
+        FD_SET(signal_fd, &read_fd);
 
         fflush(stdout);
         int activity = select(max_fd + 1, &read_fd, NULL, NULL, NULL); 
@@ -191,15 +197,26 @@ int main() {
             size_t bytes_read = read_stdin(stdin_fd, input_buffer);
             // printf("Read %zu bytes from stdin\n", bytes_read);
 
-            handle_input(main_data, input_buffer);
+            if(handle_input(main_data, input_buffer) == 1){
+                break;
+            }
+        }
+
+        if(FD_ISSET(signal_fd, &read_fd)){
+            break;
         }
     }
 
-    close(inotify_fd);
+    // kill all sync processes and controller
+    // close all fds and free
+
+    kill(controller_pid, SIGTERM);
+    waitpid(controller_pid, NULL, 0);
+
+    close(signal_fd);
 
     vector_delete(input_buffer);
 
-    // Close all pipes and controller
     delete_structure(structure);
     delete_inotify(inotify_map);
 

@@ -37,6 +37,10 @@ vec_pointer parse_line(v_string line);
 vec_pointer handle_parsed_line(vec_pointer splitted);
 
 bool validate_splitted_input(vec_pointer splitted);
+
+void set_clean_mask();
     
+// From: https://gitlab.com/SaQQ/sop1/-/blob/master/05_events/select_multiple.c
+int setup_signal_fd();
 
 #endif //UTILS_H

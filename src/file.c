@@ -72,7 +72,7 @@ int copy_directory(char* source, char* destination){
         char* src_path = join_paths(source, dp->d_name);
         char* dest_path = join_paths(destination, dp->d_name);
        
-        try(stat(src_path, &st));
+        try(lstat(src_path, &st));
         if(S_ISDIR(st.st_mode)){
             copy_directory(src_path, dest_path);
         } else {
@@ -177,7 +177,7 @@ int handle_create_dir(char* base_path, char* source, char* destination){
     char* rel_path = get_relative_path(base_path, source);
     char* dest_path = join_paths(destination, rel_path);
 
-    int res = mkdir(dest_path, 0777);
+    int res = copy_directory(source, dest_path);
 
     free(rel_path);
     free(dest_path);

@@ -1,7 +1,12 @@
 #include <unistd.h>
+#include <signal.h>
+#include <sys/signalfd.h>
+#include <sys/wait.h>
+#include <sys/types.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <string.h>
+#include <fcntl.h>
 
 #include "../includes/utils.h"
 #include "../includes/vector.h"
@@ -132,4 +137,28 @@ bool validate_splitted_input(vec_pointer splitted){
    
     printf("Unknown command: %s\n", (char*)command->value);
     return false;
+}
+
+void set_clean_mask(){
+    sigset_t mask;
+    sigemptyset(&mask);
+
+    try(sigprocmask(SIG_SETMASK, &mask, NULL));
+}
+
+// From: https://gitlab.com/SaQQ/sop1/-/blob/master/05_events/select_multiple.c
+int setup_signal_fd() {
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+    sigaddset(&mask, SIGTERM);
+
+    try(sigprocmask(SIG_BLOCK, &mask, NULL));
+
+    int fd = signalfd(-1, &mask, O_NONBLOCK);
+    if (fd == -1) {
+        error("signalfd");
+    }
+
+    return fd;
 }
