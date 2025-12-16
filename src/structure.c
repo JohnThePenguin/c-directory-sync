@@ -37,7 +37,7 @@ void add_source(vec_pointer structure, v_string source, int key, int pipe_wr_fd)
 
     vector_push(structure, &new_source);
 
-    printf("Added source to structure: %s\n", v_get_source(structure, structure->size - 1).source->value);
+    // printf("Added source to structure: %s\n", v_get_source(structure, structure->size - 1).source->value);
 }
 
 dest_t get_destination(vec_pointer structure, v_string source, v_string destination){
@@ -97,7 +97,6 @@ void remove_destination(vec_pointer structure, v_string source, v_string destina
 void remove_source(vec_pointer structure, v_string source){
     int i = 0;
 
-    printf("Structure size before removing source: %d\n", structure->size);
     while(i < structure->size){
         source_t current = v_get_source(structure, i);
 
@@ -112,7 +111,6 @@ void remove_source(vec_pointer structure, v_string source){
 
     while(src_vec.destinations->size > 0){
         dest_t dest_vec = v_get_destination(src_vec.destinations, src_vec.destinations->size - 1);
-        printf("Removing destination: %s\n", dest_vec.destination->value);
         vector_delete(dest_vec.destination);
         vector_pop(src_vec.destinations);
     }
@@ -128,13 +126,13 @@ void remove_source(vec_pointer structure, v_string source){
 
 
 void delete_structure(vec_pointer structure){
-    printf("Deleting structure contents of size = %d\n", structure->size);
+    // printf("Deleting structure contents of size = %d\n", structure->size);
 
     while(structure->size > 0){
         source_t source = v_get_source(structure, structure->size - 1);
         v_string source_name = source.source;
 
-        printf("Removing source: %s\n", source_name->value);
+        // printf("Removing source: %s\n", source_name->value);
         remove_source(structure, source_name);
     }
     vector_delete(structure);
@@ -148,12 +146,12 @@ void printf_structure(vec_pointer structure){
         source_t source = v_get_source(structure, i);
         if(source.destinations->size == 0) continue;
 
-        printf("Source %s:\n", source.source->value);
+        printf("Source %s:\n", (char*)source.source->value);
         count += source.destinations->size;
 
         for(int j = 0; j < source.destinations->size; j++){
             dest_t dest = v_get_destination(source.destinations, j);
-            printf("\t- Destination %s\n", dest.destination->value);
+            printf("\t- Destination %s\n", (char*)dest.destination->value);
         }
     }
     printf("Total: %d\n", count);

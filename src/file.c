@@ -79,9 +79,6 @@ int copy_directory(char* source, char* destination){
             copy_file(src_path, dest_path);
         }
 
-        printf("Copied %s to %s\n", src_path, dest_path);
-        // handle links
-
         free(src_path);
         free(dest_path);
     }

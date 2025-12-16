@@ -6,7 +6,7 @@ void* read_event(int fd, size_t event_size){
     if(!event) error("Malloc error in read_event");
 
     ssize_t total_read = 0;
-    while(total_read < event_size){
+    while(total_read < (ssize_t)event_size){
         ssize_t curr_read = read(fd, event + total_read, event_size - total_read);
         if(curr_read < 0) {
             error("Read error in read_event, could not read full event");
@@ -19,7 +19,7 @@ void* read_event(int fd, size_t event_size){
 
 int write_event(int fd, void* event, size_t event_size){
     ssize_t total_written = 0;
-    while(total_written < event_size){
+    while(total_written < (ssize_t)event_size){
         ssize_t curr_written = write(fd, event + total_written, event_size - total_written);
         if(curr_written < 0) return -1;
         total_written += curr_written;

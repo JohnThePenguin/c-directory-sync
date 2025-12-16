@@ -32,10 +32,6 @@ void handle_sync_event(sync_event_pointer event, const char* source, const char*
 }
 
 void run_sync(const char* source, const char* destinations, char* fifo_path){
-    printf("Starting sync from %s to %s using fifo %s, with pid = %d\n",
-        source, destinations, fifo_path, getpid());
-
-
     copy_directory(source, destinations);
 
     int fifo_fd = open(fifo_path, O_RDONLY | O_NONBLOCK);
@@ -64,9 +60,6 @@ void run_sync(const char* source, const char* destinations, char* fifo_path){
 
         sync_event_pointer event = read_sync_event(fifo_fd);
 
-        printf("Sync process received event %d on path %s\n",
-            event->type, event->path);
-
         handle_sync_event(event, source, destinations);
 
         free(event);
@@ -80,7 +73,5 @@ void run_sync(const char* source, const char* destinations, char* fifo_path){
 }
 
 void run_recover(const char* source, const char* destinations){
-    printf("Starting recover from %s to %s\n",
-        source, destinations);
 
 }

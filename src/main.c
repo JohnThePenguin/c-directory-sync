@@ -33,10 +33,9 @@ int setup_destination(struct s_main dt, v_string source, v_string destination){
     if(src.not_found){
         int pipe_fd = open_pipe_fd(new_key, getpid());
 
-        printf("In setup_destination: Adding source %s with key %d\n", source->value, new_key);        
+        // printf("In setup_destination: Adding source %s with key %d\n", source->value, new_key);        
 
         add_source(dt.structure, source, new_key, pipe_fd);
-        // Duplicate should be ok
         add_watch_recursive(dt.inotify_map->inotify_fd, dt.inotify_map, source->value);
     }
 
@@ -59,7 +58,7 @@ int setup_destination(struct s_main dt, v_string source, v_string destination){
 int destruct_destination(struct s_main dt, v_string source, v_string destination){
     dest_t dest = get_destination(dt.structure, source, destination);
     if(dest.not_found){
-        printf("Destination %s not found for source %s\n", destination->value, source->value);
+        printf("Destination %s not found for source %s\n", (char*)destination->value, (char*)source->value);
         return ERR_DESTINATION_NOT_FOUND;
     }
 
@@ -70,7 +69,7 @@ int destruct_destination(struct s_main dt, v_string source, v_string destination
     strcpy(event->source, source->value);
     strcpy(event->destination, destination->value);
 
-    printf("Sending stop event for source %s and destination %s\n", source->value, destination->value);
+    // printf("Sending stop event for source %s and destination %s\n", source->value, destination->value);
     write_event(dt.controller_fd, event, sizeof(struct controller_event));
     free(event);
 
@@ -110,10 +109,6 @@ int handle_input(struct s_main dt, v_string input){
     v_string source = splitted->size > 1 ? v_get_vec(splitted, 1) : NULL;
 
     for(int i = 2; i < parsed->size; i++){
-        printf("Running %s with source %s and destination %s\n",
-            command->value, source->value,
-            v_get_vec(parsed, i)->value);
-
         if(!strcmp(command->value, "add")){
             setup_destination(dt, source, v_get_vec(parsed, i));
         }
@@ -194,8 +189,7 @@ int main() {
         }
 
         if(FD_ISSET(stdin_fd, &read_fd)){
-            size_t bytes_read = read_stdin(stdin_fd, input_buffer);
-            // printf("Read %zu bytes from stdin\n", bytes_read);
+            read_stdin(stdin_fd, input_buffer);
 
             if(handle_input(main_data, input_buffer) == 1){
                 break;

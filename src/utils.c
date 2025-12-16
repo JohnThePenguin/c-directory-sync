@@ -92,7 +92,7 @@ vec_pointer handle_parsed_line(vec_pointer splitted){
         char* cstr_path = realpath((*path)->value, NULL);
 
         if(cstr_path == NULL){
-            printf("Path %s not found\n", (*path)->value);
+            printf("Path %s not found\n", (char*)(*path)->value);
             return NULL;
         }
 
@@ -115,11 +115,19 @@ bool validate_splitted_input(vec_pointer splitted){
     v_string command = v_get_vec(splitted, 0);
 
     if(!strcmp(command->value, "add") || 
-        !strcmp(command->value, "remove") || 
-        !strcmp(command->value, "recover")){
+        !strcmp(command->value, "remove")){
 
         if(splitted->size < 3){
             printf("Command %s requires at least 2 arguments\n", (char*)command->value);
+            return false;
+        }
+
+        return true;
+    }
+
+    if(!strcmp(command->value, "recover")){
+        if(splitted->size != 3){
+            printf("Command recover requires exactly 2 arguments\n");
             return false;
         }
 

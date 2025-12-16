@@ -144,7 +144,7 @@ void vector_print(vec_pointer v){
     int i = 0;
 
     if(v == NULL){
-        printf("<Given NULL as pointer to Vector>");
+        // printf("<Given NULL as pointer to Vector>");
     }
     else{
         for(i = v->size - 1; i >= 0; i--){

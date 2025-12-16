@@ -44,7 +44,7 @@ char* get_fifo_path(int key, pid_t pid){
 
 int open_pipe_fd(int key, pid_t pid){
     char* pipe_path = get_fifo_path(key, pid);
-    printf("Opening fifo pipe at %s for key %d\n", pipe_path, key);
+    // printf("Opening fifo pipe at %s for key %d\n", pipe_path, key);
 
     try(mkfakefifo(pipe_path));
 
@@ -89,7 +89,7 @@ int stop_sync_process(pid_t pid){
     int status;
     try(waitpid(pid, &status, 0));
 
-    printf("Got sync process %d stopped\n", pid);
+    // printf("Controller: Stopped and waited process %d\n", pid);
     return status;
 }
 
@@ -147,7 +147,7 @@ void controller_loop(int pipe_fd, char* base_path){
 
         switch(event->type){
             case ET_SYNC_START:
-                printf("Controller: Start sync from %s to %s (source-key=%d)\n", event->source, event->destination, event->source_key);
+                // printf("Controller: Start sync from %s to %s (source-key=%d)\n", event->source, event->destination, event->source_key);
                 start_sync_process(
                     event->key, 
                     event->source_key,
@@ -159,12 +159,12 @@ void controller_loop(int pipe_fd, char* base_path){
                 );
                 break;
             case ET_SYNC_STOP:
-                printf("Controller: Stop sync from %s to %s\n", event->source, event->destination);
+                // printf("Controller: Stop sync from %s to %s\n", event->source, event->destination);
                 stop_sync_process(fork_pids[event->key]);
                 fork_pids[event->key] = 0;
                 break;
             case ET_RESTORE:
-                printf("Controller: Restore from %s to %s\n", event->source, event->destination);
+                //printf("Controller: Restore from %s to %s\n", event->source, event->destination);
                 start_recover_process(
                     event->key, 
                     event->source, 
@@ -174,7 +174,7 @@ void controller_loop(int pipe_fd, char* base_path){
                 );
                 break;
             default:
-                printf("Controller: Unknown event type %d\n", event->type);
+                // printf("Controller: Unknown event type %d\n", event->type);
                 break;
         }
 

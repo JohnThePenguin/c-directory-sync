@@ -20,13 +20,11 @@ void add_to_map(watch_map_t map, int wd, const char* path)
 {
     if (map->watch_count >= MAX_WATCHES)
     {
-        fprintf(stderr, "Exceeded max watches!\n");
-        return;
+        error("max watches exceeded");
     }
     map->watch_map[map->watch_count].wd = wd;
     map->watch_map[map->watch_count].path = strdup(path);  // Must copy the path!
     map->watch_count++;
-    printf("new watch: '%s' @wd=%d\n", path, wd);
 }
 
 watch_t find_watch(watch_map_t map, int wd)
@@ -47,7 +45,6 @@ void remove_from_map(watch_map_t map, int wd)
     {
         if (map->watch_map[i].wd == wd)
         {
-            printf("removing watch: '%s' @wd=%d\n", map->watch_map[i].path, wd);
             free(map->watch_map[i].path);
             map->watch_map[i] = map->watch_map[map->watch_count - 1];
             map->watch_count--;
@@ -139,11 +136,11 @@ void notify_sources(vec_pointer structure, enum sync_event_type et, char* path){
     for(int i = 0; i < structure->size; i++){
         source_t source = v_get_source(structure, i);
         if(is_subpath(source.source->value, path)){
-            printf("Notifying source %s about event %d on path %s\n",
-                source.source->value, et, path);
+            // printf("Notifying source %s about event %d on path %s\n",
+                // source.source->value, et, path);
 
             ssize_t res = write_event(source.pipe_wr_fd, event, sizeof(struct sync_event));
-            if(res < 0) printf("Error writing to source pipe (fd = %d)\n", source.pipe_wr_fd);
+            if(res < 0) printf("Error writing to source pipe (fd = %ld)\n", source.pipe_wr_fd);
         }
     }
     free(event);
@@ -202,7 +199,6 @@ void handle_inotify_ready(vec_pointer structure, watch_map_t map)
 
         if (event->mask & IN_CREATE)
         {
-            // printf("CREATED");
             notify_sources_create(structure, event_path, is_dir);
 
             if( event->mask & IN_ISDIR ) 
@@ -210,21 +206,17 @@ void handle_inotify_ready(vec_pointer structure, watch_map_t map)
         }
         if (event->mask & IN_DELETE)
         {
-            // printf("DELETED");
             notify_sources_delete(structure, event_path, is_dir);
         }
         else if (event->mask & IN_MOVED_FROM)
         {
-            // printf("MOVED_FROM (cookie=%u)", event->cookie);
             pending_cookie = event->cookie;
             strncpy(pending_move_path, event_path, sizeof(pending_move_path));
 
-            // Treat as deleted
             notify_sources_delete(structure, event_path, is_dir);
         }
         else if (event->mask & IN_MOVED_TO)
         {
-            // printf("MOVED_TO (cookie=%u)", event->cookie);
             if(is_dir){
                 if (event->cookie == pending_cookie && pending_cookie != 0)
                 {
@@ -242,43 +234,11 @@ void handle_inotify_ready(vec_pointer structure, watch_map_t map)
         }
         else if (event->mask & IN_MODIFY)
         {
-            // printf("MODIFIED");
             if(!is_dir)
                 notify_sources_modify(structure, event_path);
         }
 
         i += sizeof(struct inotify_event) + event->len;
-        // printf("\n");
     }
-
-    /*
-    else
-    {
-        printf("File '%s' was ", event_path);
-
-        if (event->mask & IN_MODIFY)
-        {
-            printf("MODIFIED");
-        }
-        if (event->mask & IN_CREATE && !(event->mask & IN_ISDIR))
-        {
-            printf("CREATED");
-        }
-        if (event->mask & IN_DELETE && !(event->mask & IN_ISDIR))
-        {
-            printf("DELETED");
-        }
-        if (event->mask & IN_MOVED_FROM)
-        {
-            printf("MOVED_FROM");
-        }
-        if (event->mask & IN_MOVED_TO && !(event->mask & IN_ISDIR))
-        {
-            printf("MOVED_TO");
-        }
-
-        printf("\n");
-    }
-    */
 
 }
