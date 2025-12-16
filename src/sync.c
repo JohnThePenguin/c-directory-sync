@@ -9,7 +9,7 @@
 #include <sys/select.h>
 #include <unistd.h>
 
-void handle_sync_event(sync_event_pointer event, const char* source, const char* destination)
+void handle_sync_event(sync_event_pointer event, char* source, char* destination)
 {
     switch (event->type)
     {
@@ -35,7 +35,7 @@ void handle_sync_event(sync_event_pointer event, const char* source, const char*
 
 void run_sync(const char* source, const char* destinations, char* fifo_path)
 {
-    copy_directory(source, destinations);
+    copy_directory((char*)source, (char*)destinations);
 
     int fifo_fd = open(fifo_path, O_RDONLY | O_NONBLOCK);
     if (fifo_fd < 0)
@@ -67,7 +67,7 @@ void run_sync(const char* source, const char* destinations, char* fifo_path)
 
         sync_event_pointer event = read_sync_event(fifo_fd);
 
-        handle_sync_event(event, source, destinations);
+        handle_sync_event(event, (char*)source, (char*)destinations);
 
         free(event);
     }
