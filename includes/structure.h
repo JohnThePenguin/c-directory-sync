@@ -1,13 +1,14 @@
 #ifndef STRUCTURE_H
 #define STRUCTURE_H
 
-#include "vector.h"
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include "vector.h"
 
-struct source_structure {
+struct source_structure
+{
     v_string source;
-    vec_pointer destinations; // vector of v_string
+    vec_pointer destinations;  // vector of v_string
 
     int key;
     long pipe_wr_fd;
@@ -15,7 +16,8 @@ struct source_structure {
     bool not_found;
 };
 
-struct destination_structure {
+struct destination_structure
+{
     v_string destination;
 
     int key;
@@ -51,4 +53,4 @@ source_t v_get_source(vec_pointer v, int index);
 
 dest_t v_get_destination(vec_pointer v, int index);
 
-#endif // STRUCTURE_H
+#endif  // STRUCTURE_H

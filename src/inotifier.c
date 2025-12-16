@@ -10,11 +10,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "../includes/structure.h"
-#include "../includes/utils.h"
 #include "../includes/events.h"
 #include "../includes/file.h"
 #include "../includes/inotifier.h"
+#include "../includes/structure.h"
+#include "../includes/utils.h"
 
 void add_to_map(watch_map_t map, int wd, const char* path)
 {
@@ -128,37 +128,41 @@ int delete_inotify(watch_map_t map)
     return 0;
 }
 
-void notify_sources(vec_pointer structure, enum sync_event_type et, char* path){
+void notify_sources(vec_pointer structure, enum sync_event_type et, char* path)
+{
     sync_event_pointer event = malloc(sizeof(struct sync_event));
     event->type = et;
     strcpy(event->path, path);
 
-    for(int i = 0; i < structure->size; i++){
+    for (int i = 0; i < structure->size; i++)
+    {
         source_t source = v_get_source(structure, i);
-        if(is_subpath(source.source->value, path)){
+        if (is_subpath(source.source->value, path))
+        {
             // printf("Notifying source %s about event %d on path %s\n",
-                // source.source->value, et, path);
+            // source.source->value, et, path);
 
             ssize_t res = write_event(source.pipe_wr_fd, event, sizeof(struct sync_event));
-            if(res < 0) printf("Error writing to source pipe (fd = %ld)\n", source.pipe_wr_fd);
+            if (res < 0)
+                printf("Error writing to source pipe (fd = %ld)\n", source.pipe_wr_fd);
         }
     }
     free(event);
 }
 
-void notify_sources_create(vec_pointer structure, char* path, bool is_dir){
+void notify_sources_create(vec_pointer structure, char* path, bool is_dir)
+{
     enum sync_event_type et = is_dir ? ET_DIR_CREATED : ET_FILE_CREATED;
     notify_sources(structure, et, path);
 }
 
-void notify_sources_delete(vec_pointer structure, char* path, bool is_dir){
+void notify_sources_delete(vec_pointer structure, char* path, bool is_dir)
+{
     enum sync_event_type et = is_dir ? ET_DIR_DELETED : ET_FILE_DELETED;
     notify_sources(structure, et, path);
 }
 
-void notify_sources_modify(vec_pointer structure, char* path){
-    notify_sources(structure, ET_FILE_MODIFIED, path);
-}
+void notify_sources_modify(vec_pointer structure, char* path) { notify_sources(structure, ET_FILE_MODIFIED, path); }
 
 void handle_inotify_ready(vec_pointer structure, watch_map_t map)
 {
@@ -201,7 +205,7 @@ void handle_inotify_ready(vec_pointer structure, watch_map_t map)
         {
             notify_sources_create(structure, event_path, is_dir);
 
-            if( event->mask & IN_ISDIR ) 
+            if (event->mask & IN_ISDIR)
                 add_watch_recursive(map->inotify_fd, map, event_path);
         }
         if (event->mask & IN_DELETE)
@@ -217,7 +221,8 @@ void handle_inotify_ready(vec_pointer structure, watch_map_t map)
         }
         else if (event->mask & IN_MOVED_TO)
         {
-            if(is_dir){
+            if (is_dir)
+            {
                 if (event->cookie == pending_cookie && pending_cookie != 0)
                 {
                     update_watch_paths(map, pending_move_path, event_path);
@@ -234,11 +239,10 @@ void handle_inotify_ready(vec_pointer structure, watch_map_t map)
         }
         else if (event->mask & IN_MODIFY)
         {
-            if(!is_dir)
+            if (!is_dir)
                 notify_sources_modify(structure, event_path);
         }
 
         i += sizeof(struct inotify_event) + event->len;
     }
-
 }

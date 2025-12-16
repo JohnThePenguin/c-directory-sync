@@ -3,14 +3,15 @@
 
 #define _GNU_SOURCE
 
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 
 #include "vector.h"
 
-enum program_error {
+enum program_error
+{
     ERR_SOURCE_NOT_FOUND,
     ERR_DESTINATION_NOT_FOUND,
 
@@ -26,9 +27,9 @@ enum program_error {
 #define error(source) \
     (fprintf(stderr, "%s:%d\n", __FILE__, __LINE__), perror(source), kill(0, SIGKILL), exit(EXIT_FAILURE))
 
-#define try(op) \
-    if((op) < 0) error(#op)
-
+#define try(op)   \
+    if ((op) < 0) \
+    error(#op)
 
 size_t read_stdin(int stdin_fd, v_string buffer);
 
@@ -39,8 +40,8 @@ vec_pointer handle_parsed_line(vec_pointer splitted);
 bool validate_splitted_input(vec_pointer splitted);
 
 void set_clean_mask();
-    
+
 // From: https://gitlab.com/SaQQ/sop1/-/blob/master/05_events/select_multiple.c
 int setup_signal_fd();
 
-#endif //UTILS_H
+#endif  // UTILS_H

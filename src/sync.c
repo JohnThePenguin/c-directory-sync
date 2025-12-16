@@ -1,16 +1,18 @@
-#include "../includes/vector.h"
 #include "../includes/sync.h"
-#include "../includes/utils.h"
 #include "../includes/events.h"
 #include "../includes/file.h"
+#include "../includes/utils.h"
+#include "../includes/vector.h"
 
-#include <stdio.h>
-#include <unistd.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <sys/select.h>
+#include <unistd.h>
 
-void handle_sync_event(sync_event_pointer event, const char* source, const char* destination){
-    switch (event->type){
+void handle_sync_event(sync_event_pointer event, const char* source, const char* destination)
+{
+    switch (event->type)
+    {
         case ET_FILE_CREATED:
             handle_create_file(source, event->path, destination);
             break;
@@ -31,30 +33,35 @@ void handle_sync_event(sync_event_pointer event, const char* source, const char*
     }
 }
 
-void run_sync(const char* source, const char* destinations, char* fifo_path){
+void run_sync(const char* source, const char* destinations, char* fifo_path)
+{
     copy_directory(source, destinations);
 
     int fifo_fd = open(fifo_path, O_RDONLY | O_NONBLOCK);
-    if(fifo_fd < 0) error("Error opening fifo in run_sync, stopping sync process");
+    if (fifo_fd < 0)
+        error("Error opening fifo in run_sync, stopping sync process");
 
     try(lseek(fifo_fd, 0, SEEK_END));
 
     // int signal_fd = setup_signal_fd();
 
     fd_set read_fd;
-    int max_fd = fifo_fd;// (fifo_fd > signal_fd) ? fifo_fd : signal_fd;
+    int max_fd = fifo_fd;  // (fifo_fd > signal_fd) ? fifo_fd : signal_fd;
 
-    while(1){
+    while (1)
+    {
         FD_ZERO(&read_fd);
         FD_SET(fifo_fd, &read_fd);
         // FD_SET(signal_fd, &read_fd);
         int activity = select(max_fd + 1, &read_fd, NULL, NULL, NULL);
-        if(activity < 0) error("select error in controller_loop");
+        if (activity < 0)
+            error("select error in controller_loop");
 
         // if(FD_ISSET(signal_fd, &read_fd)){
         //     break;
         // }
-        if(!FD_ISSET(fifo_fd, &read_fd)){
+        if (!FD_ISSET(fifo_fd, &read_fd))
+        {
             continue;
         }
 
@@ -72,6 +79,4 @@ void run_sync(const char* source, const char* destinations, char* fifo_path){
     // try(close(signal_fd));
 }
 
-void run_recover(const char* source, const char* destinations){
-
-}
+void run_recover(const char* source, const char* destinations) {}

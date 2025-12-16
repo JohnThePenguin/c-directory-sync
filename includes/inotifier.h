@@ -1,3 +1,5 @@
+#ifndef INOTIFIER_H
+#define INOTIFIER_H
 
 // Original source: https://gitlab.com/SaQQ/sop1/-/blob/master/05_events/watch_tree.c
 
@@ -11,10 +13,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "../includes/structure.h"
-#include "../includes/utils.h"
 #include "../includes/events.h"
 #include "../includes/file.h"
+#include "../includes/structure.h"
+#include "../includes/utils.h"
 
 #define MAX_WATCHES 8192
 #define EVENT_BUF_LEN (64 * (sizeof(struct inotify_event) + NAME_MAX + 1))
@@ -59,3 +61,5 @@ void notify_sources_delete(vec_pointer structure, char* path, bool is_dir);
 void notify_sources_modify(vec_pointer structure, char* path);
 
 void handle_inotify_ready(vec_pointer structure, watch_map_t map);
+
+#endif  // INOTIFIER_H

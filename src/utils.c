@@ -1,38 +1,44 @@
-#include <unistd.h>
-#include <signal.h>
-#include <sys/signalfd.h>
-#include <sys/wait.h>
-#include <sys/types.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <string.h>
-#include <fcntl.h>
+#include <sys/signalfd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
+#include "../includes/file.h"
 #include "../includes/utils.h"
 #include "../includes/vector.h"
-#include "../includes/file.h"
 
-size_t read_stdin(int stdin_fd, v_string buffer){
+size_t read_stdin(int stdin_fd, v_string buffer)
+{
     ssize_t already_read = 0;
     char null_char = '\0';
 
-    while(1){
-        if(already_read >= buffer->allocated - 1){
+    while (1)
+    {
+        if (already_read >= buffer->allocated - 1)
+        {
             vector_set_size(buffer, buffer->allocated * 2);
         }
 
         // Wrap into TEMP_FAIL macro
-        ssize_t bytes_read = read(stdin_fd, 
-            buffer->value + already_read, 
-            buffer->allocated - already_read - 1
-        );
+        ssize_t bytes_read = read(stdin_fd, buffer->value + already_read, buffer->allocated - already_read - 1);
 
-        if(bytes_read < 0){
-            if(errno == EAGAIN || errno == EWOULDBLOCK) break;
+        if (bytes_read < 0)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+                break;
             error("Read error from stdin");
-        } else if(bytes_read == 0){
+        }
+        else if (bytes_read == 0)
+        {
             break;
-        } else {
+        }
+        else
+        {
             already_read += bytes_read;
         }
     }
@@ -42,31 +48,40 @@ size_t read_stdin(int stdin_fd, v_string buffer){
     return already_read;
 }
 
-int find_char(v_string str, char c, int start_index){
-    for(int i = start_index; i < str->size; i++){
-        if(v_get_char(str, i) == c){
+int find_char(v_string str, char c, int start_index)
+{
+    for (int i = start_index; i < str->size; i++)
+    {
+        if (v_get_char(str, i) == c)
+        {
             return i;
         }
     }
     return -1;
 }
 
-vec_pointer parse_line(v_string line){
+vec_pointer parse_line(v_string line)
+{
     vec_pointer result = vector_create(sizeof(v_string));
     int i = 0;
     char null_char = '\0';
-   
-    while(i < line->size - 2){ // enter and null char
-        while(i < line->size && v_get_char(line, i) == ' ') i++;
-        if(i >= line->size - 2) break;
+
+    while (i < line->size - 2)
+    {  // enter and null char
+        while (i < line->size && v_get_char(line, i) == ' ')
+            i++;
+        if (i >= line->size - 2)
+            break;
 
         bool in_quotes = v_get_char(line, i) == '"';
 
-        if(in_quotes) i++;
+        if (in_quotes)
+            i++;
         int start = i;
         int end = find_char(line, in_quotes ? '"' : ' ', i);
 
-        if(end == -1) end = line->size - 2; // until enter
+        if (end == -1)
+            end = line->size - 2;  // until enter
 
         vec_pointer segment = vector_create(sizeof(char));
         vector_set_size(segment, end - start + 1);
@@ -81,17 +96,21 @@ vec_pointer parse_line(v_string line){
     return result;
 }
 
-vec_pointer handle_parsed_line(vec_pointer splitted){
-    for(int i = 1; i < splitted->size; i++){
+vec_pointer handle_parsed_line(vec_pointer splitted)
+{
+    for (int i = 1; i < splitted->size; i++)
+    {
         v_string* path = ((v_string*)(splitted->value) + i);
 
-        if(i >= 2) { 
+        if (i >= 2)
+        {
             ensure_directory_exists((*path)->value);
         }
 
         char* cstr_path = realpath((*path)->value, NULL);
 
-        if(cstr_path == NULL){
+        if (cstr_path == NULL)
+        {
             printf("Path %s not found\n", (char*)(*path)->value);
             return NULL;
         }
@@ -105,19 +124,21 @@ vec_pointer handle_parsed_line(vec_pointer splitted){
     return splitted;
 }
 
-bool validate_splitted_input(vec_pointer splitted){
+bool validate_splitted_input(vec_pointer splitted)
+{
     // Check for:
     // - valid command
     // - correct paths - existance, type, emptiness
-    // - destination is not inside source 
-    if(splitted->size == 0) return false;
+    // - destination is not inside source
+    if (splitted->size == 0)
+        return false;
 
     v_string command = v_get_vec(splitted, 0);
 
-    if(!strcmp(command->value, "add") || 
-        !strcmp(command->value, "remove")){
-
-        if(splitted->size < 3){
+    if (!strcmp(command->value, "add") || !strcmp(command->value, "remove"))
+    {
+        if (splitted->size < 3)
+        {
             printf("Command %s requires at least 2 arguments\n", (char*)command->value);
             return false;
         }
@@ -125,8 +146,10 @@ bool validate_splitted_input(vec_pointer splitted){
         return true;
     }
 
-    if(!strcmp(command->value, "recover")){
-        if(splitted->size != 3){
+    if (!strcmp(command->value, "recover"))
+    {
+        if (splitted->size != 3)
+        {
             printf("Command recover requires exactly 2 arguments\n");
             return false;
         }
@@ -134,20 +157,23 @@ bool validate_splitted_input(vec_pointer splitted){
         return true;
     }
 
-    if(!strcmp(command->value, "list") || !strcmp(command->value, "exit")){
-        if(splitted->size != 1){
+    if (!strcmp(command->value, "list") || !strcmp(command->value, "exit"))
+    {
+        if (splitted->size != 1)
+        {
             printf("Command list does not take any arguments\n");
             return false;
         }
 
         return true;
     }
-   
+
     printf("Unknown command: %s\n", (char*)command->value);
     return false;
 }
 
-void set_clean_mask(){
+void set_clean_mask()
+{
     sigset_t mask;
     sigemptyset(&mask);
 
@@ -155,7 +181,8 @@ void set_clean_mask(){
 }
 
 // From: https://gitlab.com/SaQQ/sop1/-/blob/master/05_events/select_multiple.c
-int setup_signal_fd() {
+int setup_signal_fd()
+{
     sigset_t mask;
     sigemptyset(&mask);
     sigaddset(&mask, SIGINT);
@@ -164,7 +191,8 @@ int setup_signal_fd() {
     try(sigprocmask(SIG_BLOCK, &mask, NULL));
 
     int fd = signalfd(-1, &mask, O_NONBLOCK);
-    if (fd == -1) {
+    if (fd == -1)
+    {
         error("signalfd");
     }
 

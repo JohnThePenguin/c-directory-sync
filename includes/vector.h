@@ -19,7 +19,8 @@
     size - current use size of array
     allocated - current allocated size of array
 */
-struct vector {
+struct vector
+{
     void* value;
     int size;
     int allocated;
@@ -43,7 +44,7 @@ vec_pointer vector_create(size_t element_size);
 void vector_delete(vec_pointer v);
 
 /*
-    Function copies vector b to vector destination 
+    Function copies vector b to vector destination
     and deletes original value of destination vector
     @param destination - pointer to vector
     @param b - pointer to vector
@@ -52,7 +53,7 @@ void vector_delete(vec_pointer v);
 void vector_copy(vec_pointer* destination, vec_pointer b);
 
 /*
-    Function rewrites vector a to vector destination 
+    Function rewrites vector a to vector destination
     and deletes original value of destination vector and second vector
     @param destination - pointer to vector
     @param a - pointer to vector
@@ -131,8 +132,7 @@ vec_pointer v_get_vec(vec_pointer v, int index);
     @param index - index of element to get
     @return element of given type at given index
 */
-#define v_get(type, v, index) \
-    *((type*)(v->value) + index);
+#define v_get(type, v, index) *((type*)(v->value) + index);
 
 /*
     Additional utility functions

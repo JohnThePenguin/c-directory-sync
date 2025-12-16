@@ -3,8 +3,7 @@
 
 #include <sys/types.h>
 
-#define CONTROLLER_MAX_FORKS (int)(1e6+7)
-
+#define CONTROLLER_MAX_FORKS (int)(1e6 + 7)
 
 /*
     @param key - unique key for source
@@ -24,5 +23,4 @@ pid_t create_controller(int pipe_fd[2], char* base_path);
 
 void controller_loop(int pipe_fd, char* base_path);
 
-
-#endif // CONTROLLER_H
+#endif  // CONTROLLER_H
